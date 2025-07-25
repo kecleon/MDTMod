@@ -1,0 +1,93 @@
+.char {
+    vertical-align: top;
+    text-align: center;
+    padding: 0;
+    background-color: #333;
+}
+
+.chdesc {
+    grid-area: desc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    width: 180px;
+}
+
+    .chdesc  div{
+        text-align:left;
+    }
+
+    .portrait {
+        float: left;
+        width: 34px;
+        height: 34px;
+        margin: 0 5px 2px 4px;
+    }
+
+.stats {
+    width: 180px;
+    margin: 4px 0;
+}
+    .stats td {
+        line-height: 1em;
+        padding: 0;
+    }
+
+    .sname {
+        text-align: right;
+        padding: 0 5px 0 0;
+    }
+
+.stat {
+    font-weight: bold;
+}
+
+.stat.maxed {
+    color: #ffd700;
+}
+
+.items {
+    width: 180px;
+}
+
+.itemsc {
+    width: 176px;
+    margin: 2px;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.equipment {
+    margin-bottom: 4px;
+}
+
+.pcstats {
+    overflow: hidden;
+    width: 180px;
+    margin: 4px 0;
+}
+
+    .pcstats td {
+        text-align: left;
+    }
+
+    .pcstats td:first-child {
+        text-align: right;
+    }
+
+.pcstat, .bonus {
+    text-align: right;
+}
+
+.pcstat {
+    color: #57AD62;
+    font-weight: bold;
+    padding-left: 5px;
+}
+
+.bonus {
+    color: #FFC800;
+}

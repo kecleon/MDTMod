@@ -1,0 +1,47 @@
+.flex-column {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    position: relative; /* Establish a positioning context */
+    z-index: 1001;      /* Ensure this is higher than the dropdown's parent */
+}
+
+.nav-item {
+    display: inline-block;
+    cursor: pointer;
+    padding: 3px 8px 0 8px;
+    height: 20px;
+    z-index: 500;
+    background-color: #424242;
+    box-shadow: 2px 2px 8px #111;
+    border: none;
+    letter-spacing: 0.02em;
+    margin: 0 0 0 4px;
+    position: relative; /* Needed for dropdown positioning */
+}
+.nav-item ::deep .nav-link {
+    color: #C7C7C7;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.nav-item ::deep .nav-link.active {
+    color: #FFFFFF;
+    font-weight: bold;
+}
+
+.intro {
+    flex-shrink: 0;
+    margin-right: 5px;
+    margin-left: 5px;
+}
+.right {
+    justify-content: flex-end;
+    flex-flow: row nowrap;
+    font-size: 14px;
+    text-align: right;
+    display: flex;
+    color: #fff;
+    padding: 5px;
+}

@@ -1,0 +1,233 @@
+﻿@using MDTadusMod.Data
+@using MDTadusMod.Services
+@inject SettingsService SettingsManager
+@implements IDisposable
+
+<div class="nav-item options-menu">
+    <span>Options</span>
+    <div class="options-dropdown">
+        @if (SettingsManager.GlobalOptions != null)
+        {
+            var viewOptions = SettingsManager.GlobalOptions;
+
+            <div class="option-item">
+                <label for="email">Email</label>
+                <input type="checkbox" id="email"
+                       checked="@viewOptions.Email"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.Email), e.Value)" />
+            </div>
+            <div class="option-item">
+                <label for="ign">IGN</label>
+                <input type="checkbox" id="ign"
+                       checked="@viewOptions.IGN"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.IGN), e.Value)" />
+            </div>
+            <div class="option-item">
+                <label for="info">Info</label>
+                <input type="checkbox" id="info"
+                       checked="@viewOptions.Info"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.Info), e.Value)" />
+            </div>
+
+            <!-- Characters Section -->
+            <div class="option-item">
+                <label for="characters">Show Characters</label>
+                <input type="checkbox" id="characters"
+                       checked="@viewOptions.Characters"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.Characters), e.Value)" />
+            </div>
+
+            @if (viewOptions.Characters)
+            {
+                <div class="radio-group">
+                    <!-- CharOrder Dropdown -->
+                    <div class="option-item">
+                        <label for="charOrder">Char Order</label>
+                        <select id="charOrder"
+                                @onchange="(e) => UpdateOption(nameof(viewOptions.CharOrder), Enum.Parse(typeof(CharOrder), e.Value.ToString()))">
+                            @foreach (CharOrder order in Enum.GetValues(typeof(CharOrder)))
+                            {
+                                <option value="@order" selected="@(viewOptions.CharOrder == order)">@order</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- CharRowLength Number Input -->
+                    <div class="option-item">
+                        <label for="charRowLength">Chars per row</label>
+                        <input type="number" id="charRowLength"
+                               value="@viewOptions.CharRowLength"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.CharRowLength), int.Parse(e.Value.ToString()))"
+                               style="width: 50px;" />
+                    </div>
+
+                    <!-- Other Checkboxes -->
+                    <div class="option-item">
+                        <label for="charDescription">Char Description</label>
+                        <input type="checkbox" id="charDescription"
+                               checked="@viewOptions.CharDescription"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.CharDescription), e.Value)" />
+                    </div>
+                    <div class="option-item">
+                        <label for="equipment">Equipment</label>
+                        <input type="checkbox" id="equipment"
+                               checked="@viewOptions.Equipment"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.Equipment), e.Value)" />
+                    </div>
+                    <div class="option-item">
+                        <label for="inventory">Inventory</label>
+                        <input type="checkbox" id="inventory"
+                               checked="@viewOptions.Inventory"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.Inventory), e.Value)" />
+                    </div>
+                    <div class="option-item">
+                        <label for="quickslots">Quickslots</label>
+                        <input type="checkbox" id="quickslots"
+                               checked="@viewOptions.Quickslots"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.Quickslots), e.Value)" />
+                    </div>
+
+                    <!-- Stats Section -->
+                    <div class="option-item">
+                        <label for="stats">Show Stats</label>
+                        <input type="checkbox" id="stats"
+                               checked="@viewOptions.Stats"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.Stats), e.Value)" />
+                    </div>
+                    @if (viewOptions.Stats)
+                    {
+                        <div class="radio-group">
+                            <div class="option-item">
+                                <label for="exalts">Exalts</label>
+                                <input type="checkbox" id="exalts"
+                                       checked="@viewOptions.Exalts"
+                                       @onchange="(e) => UpdateOption(nameof(viewOptions.Exalts), e.Value)" />
+                            </div>
+                            <!-- StatsOrder Dropdown -->
+                            <div class="option-item">
+                                <label for="statsOrder">Stats Order</label>
+                                <select id="statsOrder"
+                                        @onchange="(e) => UpdateOption(nameof(viewOptions.StatsOrder), Enum.Parse(typeof(StatsOrder), e.Value.ToString()))">
+                                    @foreach (StatsOrder order in Enum.GetValues(typeof(StatsOrder)))
+                                    {
+                                        <option value="@order" selected="@(viewOptions.StatsOrder == order)">@order</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="option-item">
+                        <label for="additionalStats">Additional Stats</label>
+                        <input type="checkbox" id="additionalStats"
+                               checked="@viewOptions.AdditionalStats"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.AdditionalStats), e.Value)" />
+                    </div>
+                    <div class="option-item">
+                        <label for="additionalGoals">Goals</label>
+                        <input type="checkbox" id="additionalGoals"
+                               checked="@viewOptions.AdditionalGoals"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.AdditionalGoals), e.Value)" />
+                    </div>
+                    <div class="option-item">
+                        <label for="additionalBonuses">Bonuses</label>
+                        <input type="checkbox" id="additionalBonuses"
+                               checked="@viewOptions.AdditionalBonuses"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.AdditionalBonuses), e.Value)" />
+                    </div>
+                </div>
+            }
+
+            <!-- Other Global Options -->
+            <div class="option-item">
+                <label for="vaults">Vaults</label>
+                <input type="checkbox" id="vaults"
+                       checked="@viewOptions.Vaults"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.Vaults), e.Value)" />
+            </div>
+            <div class="option-item">
+                <label for="potions">Potions</label>
+                <input type="checkbox" id="potions"
+                       checked="@viewOptions.Potions"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.Potions), e.Value)" />
+            </div>
+            <div class="option-item">
+                <label for="materials">Materials</label>
+                <input type="checkbox" id="materials"
+                       checked="@viewOptions.Materials"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.Materials), e.Value)" />
+            </div>
+            <div class="option-item">
+                <label for="spoils">Spoils</label>
+                <input type="checkbox" id="spoils"
+                       checked="@viewOptions.Spoils"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.Spoils), e.Value)" />
+            </div>
+            <div class="option-item">
+                <label for="gifts">Gifts</label>
+                <input type="checkbox" id="gifts"
+                       checked="@viewOptions.Gifts"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.Gifts), e.Value)" />
+            </div>
+
+            <!-- Pet Section -->
+            <div class="option-item">
+                <label for="pet">Show Pet</label>
+                <input type="checkbox" id="pet"
+                       checked="@viewOptions.Pet"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.Pet), e.Value)" />
+            </div>
+            @if (viewOptions.Pet)
+            {
+                <div class="radio-group">
+                    <div class="option-item">
+                        <label for="petDescription">Pet Description</label>
+                        <input type="checkbox" id="petDescription"
+                               checked="@viewOptions.PetDescription"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.PetDescription), e.Value)" />
+                    </div>
+                    <div class="option-item">
+                        <label for="petInventory">Pet Inventory</label>
+                        <input type="checkbox" id="petInventory"
+                               checked="@viewOptions.PetInventory"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.PetInventory), e.Value)" />
+                    </div>
+                </div>
+            }
+
+            <div class="option-item">
+                <label for="shrink">Shrink</label>
+                <input type="checkbox" id="shrink"
+                       checked="@viewOptions.Shrink"
+                       @onchange="(e) => UpdateOption(nameof(viewOptions.Shrink), e.Value)" />
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Subscribe to the OnChange event so the UI re-renders when settings change
+        SettingsManager.OnChange += StateHasChanged;
+    }
+
+    private void UpdateOption(string propertyName, object value)
+    {
+        // For checkboxes, the value is a boolean. For other inputs, it needs to be parsed.
+        object parsedValue = value;
+        if (value is bool)
+        {
+            parsedValue = (bool)value;
+        }
+        // Add other type parsings if necessary
+
+        SettingsManager.UpdateGlobalOption(propertyName, parsedValue);
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from the event to prevent memory leaks
+        SettingsManager.OnChange -= StateHasChanged;
+    }
+}

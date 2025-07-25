@@ -1,0 +1,7 @@
+.account-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start; /* Align items to the top of the row */
+    gap: 10px; /* Modern way to handle spacing for flexbox */
+    padding: 5px;
+}

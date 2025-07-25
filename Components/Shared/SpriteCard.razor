@@ -1,0 +1,77 @@
+@namespace MDTadusMod.Components.Shared
+@using MDTadusMod.Services
+@inject AssetService AssetService
+
+<div class="sprite-card @(BackgroundOff ? "no-background" : "")"
+     type="@Id"
+     style="transform: rotate(@RotationDeg);">
+    @if (isLoading)
+    {
+        <div class="loading-spinner"></div>
+    }
+    else if (!string.IsNullOrEmpty(itemImage))
+    {
+        <img src="@itemImage" alt="Item ID: @Id" />
+    }
+    else if (unknownid && Id != -1)
+    {
+        <span class="unknown">
+            @Id
+        </span>
+    }
+    else
+    {
+        <span></span>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public object Type { get; set; }
+
+    [Parameter]
+    public bool BackgroundOff { get; set; }
+
+    private int Id = -1;
+    private bool unknownid = true;
+    private string itemImage;
+    private bool isLoading = false;
+
+    private int RotationDeg;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Generate a random rotation between -15 and 15 degrees
+        var rand = new Random(Guid.NewGuid().GetHashCode());
+        RotationDeg = rand.Next(-15, 16);
+
+        // Reset state
+        itemImage = null;
+        unknownid = true;
+        Id = -1;
+        isLoading = true;
+
+        if (Type is int id)
+        {
+            Id = id;
+        }
+        else if (Type is string idString)
+        {
+            if (int.TryParse(idString, out var parsedId))
+            {
+                Id = parsedId;
+            }
+        }
+
+        if (Id != -1)
+        {
+            itemImage = await AssetService.GetItemImageAsBase64Async(Id);
+            if (!string.IsNullOrEmpty(itemImage))
+            {
+                unknownid = false;
+            }
+        }
+
+        isLoading = false;
+    }
+}

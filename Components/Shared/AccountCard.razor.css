@@ -1,0 +1,129 @@
+﻿.mule {
+    transition: box-shadow 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    min-width: 184px;
+    background-color: #333;
+    height: fit-content;
+    /* break-inside: avoid; */ /* This is only for column layouts */
+}
+
+.mule header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center; /* Vertically aligns items in the middle */
+    height:26px;
+}
+
+.mule header > :first-child {
+    justify-self: start;
+}
+
+.mule header > :last-child {
+    justify-self: end;
+}
+
+    .mule header .mule-name {
+        grid-column: 2;
+        margin: 4px;
+        text-align: center;
+        cursor: pointer;
+        overflow: hidden;
+        color: #CCC;
+        font: 16px Arial,sans-serif;
+        font-weight: bold;
+    }
+
+    .mule header .mule-text {
+        color: #6c757d;
+        margin: 0; /* Removes default margin from p */
+    }
+
+header button {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    vertical-align: middle;
+    text-align: center;
+    font-size: 16px;
+    color: white;
+    background-color: #545454;
+    cursor: pointer;
+    overflow: hidden;
+    margin: 2px;
+    text-decoration: none;
+    padding-block: 0px;
+    padding-inline: 0px;
+    border-width: 0px;
+}
+
+
+header .scont {
+    background-color: #222;
+    border-radius: 6px;
+    padding: 1px 4px 1px 4px;
+    font-weight: normal;
+    font-size: 14px;
+    margin: 2px;
+    color: #CCC;
+    cursor: default;
+    font: 12px Arial,sans-serif;
+}
+    header .scont span {
+        font-weight: normal;
+        font-size: 14px;
+    }
+    header .scont .star {
+        font-size: 1.2em;
+        line-height: 0;
+        margin: 0 0 0 0.2em;
+    }
+
+p {
+    color: #CCC;
+    margin: 0 0 0 .25rem;
+}
+
+.chars {
+    display: flex;
+    flex-direction: column; /* This will stack the character cards vertically */
+    padding: 5px;
+}
+    .chars > p {
+        flex-basis: 100%;
+    }
+
+    .chars > :deep(.char) {
+    }
+
+.itemsc {
+    width: 176px;
+    margin: 2px;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+}
+.item-container {
+    width: 176px;
+    margin: 0 2px 0 2px;
+    padding: 0 5px 0 5px;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.vaults,
+.potions,
+.materials,
+.spoils,
+.gifts,
+.chars {
+    border-top: solid;
+    border-top-width: 2px;
+    border-top-color: #555;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}

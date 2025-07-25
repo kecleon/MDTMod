@@ -1,0 +1,20 @@
+.page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: #212121;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+    background-color: #212121;
+    flex-grow:100;
+}
+
+.sidebar {
+    margin-bottom: 10px;
+    background-color: rgba(44,44,44,0.75);
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+}
+

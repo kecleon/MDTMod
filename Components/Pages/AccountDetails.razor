@@ -1,0 +1,79 @@
+@page "/account-details/{AccountId}"
+@inject Services.AccountService AccountSvc
+
+<h3>Account Details</h3>
+
+@if (accountData == null)
+{
+    <p><em>Loading account details... or no data has been refreshed yet.</em></p>
+}
+else
+{
+    <h4>@account?.Email</h4>
+
+    @if (accountData.PasswordError)
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>Password Error:</strong> The credentials for this account are incorrect. Please update the account and refresh.
+        </div>
+    }
+    else
+    {
+        <p><strong>Fame:</strong> @accountData.Fame</p>
+        <p><strong>Credits:</strong> @accountData.Credits</p>
+        <p><strong>Guild:</strong> @(string.IsNullOrEmpty(accountData.GuildName) ? "None" : $"{accountData.GuildName} (Rank: {accountData.GuildRank})")</p>
+        
+        <h5>Characters (@accountData.Characters.Count / @accountData.MaxNumChars)</h5>
+        @if (accountData.Characters.Any())
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Class</th>
+                        <th>Level</th>
+                        <th>Fame</th>
+                        <th>HP</th>
+                        <th>MP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var character in accountData.Characters)
+                    {
+                        <tr>
+                            <td>@character.ObjectType</td>
+                            <td>@character.Level</td>
+                            <td>@character.CurrentFame</td>
+                            <td>@character.MaxHitPoints</td>
+                            <td>@character.MaxMagicPoints</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p>No characters found.</p>
+        }
+    }
+}
+
+@code {
+    [Parameter]
+    public string AccountId { get; set; }
+
+    private MDTadusMod.Data.Account account;
+    private MDTadusMod.Data.AccountData accountData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Guid.TryParse(AccountId, out var accountIdGuid))
+        {
+            // First, get the basic account info (like email)
+            var accounts = await AccountSvc.GetAccountsAsync();
+            account = accounts.FirstOrDefault(a => a.Id == accountIdGuid);
+
+            // Now, load the detailed data from its file
+            accountData = await AccountSvc.GetAccountDataAsync(accountIdGuid);
+        }
+    }
+}

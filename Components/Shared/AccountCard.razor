@@ -1,0 +1,216 @@
+﻿@using MDTadusMod.Data
+@using MDTadusMod.Services
+@using RotMGAssetExtractor.Model
+@using System.Diagnostics
+@inject AssetService AssetService
+@inject SettingsService SettingsManager
+
+@if (Account != null && ViewOptions != null)
+{
+    int batchSize = 8;
+    <div class="mule">
+        <header>
+                <span class="scont">
+                    <span>@(AccountData?.Star)</span>
+                    <span class="star">★</span>
+                </span>
+            @if (ViewOptions.IGN)
+            {
+                <p class="mule-name" style="grid-column: 2;">@(AccountData?.Name ?? Account.Email)</p>
+            }
+            <button @onclick="OnRefreshClicked" disabled="@IsRefreshing" style="grid-column: 3;">
+                ↻
+            </button>
+        </header>
+
+        @if (ViewOptions.Characters)
+        {
+            <div class="chars">
+                @if (AccountData?.Characters?.Any() == true)
+                {
+                    foreach (var character in AccountData.Characters.OrderBy(c => c.Id))
+                    {
+                        <CharacterCard Character="character"
+                                       ViewOptions="ViewOptions"
+                                       MaxStatsPerClass="MaxStatsPerClass"
+                                       ClassIdToNameMap="ClassIdToNameMap"
+                                       PCStatIdToNameMap="PCStatIdToNameMap"
+                                       CharacterFameBonuses="CharacterFameBonuses" />
+                    }
+                }
+                else
+                {
+                    <p>No characters to display.</p>
+                }
+            </div>
+        }
+
+        @if (ViewOptions.Vaults && AccountData?.Vault?.Chests?.Any() == true)
+        {
+            var vaultItems = AccountData.Vault.Chests.SelectMany(c => c.Items).ToList();
+            <div class="vaults">
+                @for (int i = 0; i < vaultItems.Count; i += batchSize)
+                {
+                    <div class="item-container">
+                        @foreach (var item in vaultItems.Skip(i).Take(batchSize))
+                        {
+                            var typeStr = item.Contains('#') ? item.Split('#')[0] : item;
+                            <SpriteCard Type="@typeStr" />
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (ViewOptions.Potions && AccountData?.Potions?.Any() == true)
+        {
+            var potions = AccountData.Potions;
+            <div class="potions">
+                @for (int i = 0; i < potions.Count; i += batchSize)
+                {
+                    <div class="item-container">
+                        @foreach (var item in potions.Skip(i).Take(batchSize))
+                        {
+                            var typeStr = item.Contains('#') ? item.Split('#')[0] : item;
+                            <SpriteCard Type="@typeStr" />
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (ViewOptions.Materials && AccountData?.MaterialStorage?.Chests?.Any() == true)
+        {
+            var materialItems = AccountData.MaterialStorage.Chests.SelectMany(c => c.Items).ToList();
+            <div class="materials">
+                @for (int i = 0; i < materialItems.Count; i += batchSize)
+                {
+                    <div class="item-container">
+                        @foreach (var item in materialItems.Skip(i).Take(batchSize))
+                        {
+                            var typeStr = item.Contains('#') ? item.Split('#')[0] : item;
+                            <SpriteCard Type="@typeStr" />
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (ViewOptions.Spoils && AccountData?.TemporaryGifts?.Any() == true)
+        {
+            var spoils = AccountData.TemporaryGifts;
+            <div class="spoils">
+                @for (int i = 0; i < spoils.Count; i += batchSize)
+                {
+                    <div class="item-container">
+                        @foreach (var item in spoils.Skip(i).Take(batchSize))
+                        {
+                            var typeStr = item.Contains('#') ? item.Split('#')[0] : item;
+                            <SpriteCard Type="@typeStr" />
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (ViewOptions.Gifts && AccountData?.Gifts?.Any() == true)
+        {
+            var items = AccountData.Gifts;
+            <div class="gifts">
+                @for (int i = 0; i < items.Count; i += batchSize)
+                {
+                    <div class="item-container">
+                        @foreach (var item in items.Skip(i).Take(batchSize))
+                        {
+                            var typeStr = item.Contains('#') ? item.Split('#')[0] : item;
+                            <SpriteCard Type="@typeStr" />
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+
+@code {
+    [Parameter]
+    public MDTadusMod.Data.Account Account { get; set; }
+
+    [Parameter]
+    public MDTadusMod.Data.AccountData AccountData { get; set; }
+
+    [Parameter]
+    public AccountViewOptions ViewOptions { get; set; }
+
+    [Parameter]
+    public string Status { get; set; }
+
+    [Parameter]
+    public bool IsRefreshing { get; set; }
+
+    [Parameter]
+    public EventCallback OnRefreshClicked { get; set; }
+
+    [Parameter]
+    public EventCallback OnDetailsClicked { get; set; }
+	public bool displayCategoryTitle = true;
+
+    private Dictionary<int, Dictionary<string, int>> MaxStatsPerClass;
+    private Dictionary<int, string> ClassIdToNameMap = new();
+    private Dictionary<int, string> PCStatIdToNameMap = new();
+    private Dictionary<int, List<FameBonus>> CharacterFameBonuses = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Fallback if the parameter is not provided
+        if (ViewOptions == null)
+        {
+            ViewOptions = SettingsManager.GlobalOptions;
+        }
+        MaxStatsPerClass = await AssetService.GetMaxStatsPerClass();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // This runs every time parameters are set. Ideal for parameter-dependent logic.
+        if (AccountData?.Characters?.Any() == true)
+        {
+            CharacterFameBonuses.Clear();
+            // Fetch class names for any new class IDs
+            var classTasks = AccountData.Characters
+                .Select(c => c.ObjectType)
+                .Distinct()
+                .Where(id => !ClassIdToNameMap.ContainsKey(id))
+                .Select(async id => new { Id = id, Name = await AssetService.GetClassNameById(id) });
+
+            foreach (var task in await Task.WhenAll(classTasks))
+            {
+                ClassIdToNameMap[task.Id] = task.Name;
+            }
+
+            // Fetch stat names for any new stat IDs
+            var statTasks = AccountData.Characters
+                .SelectMany(c => c.ParsedPCStats.Keys)
+                .Distinct()
+                .Where(id => !PCStatIdToNameMap.ContainsKey(id))
+                .Select(async id => new { Id = id, Name = await AssetService.GetPCStatName(id) });
+
+            foreach (var task in await Task.WhenAll(statTasks))
+            {
+                PCStatIdToNameMap[task.Id] = task.Name;
+            }
+
+            var bonusTasks = AccountData.Characters.Select(async c => new
+            {
+                CharacterId = c.Id,
+                Bonuses = await PCStatsParser.EvaluateBonuses(c)
+            });
+
+            foreach (var result in await Task.WhenAll(bonusTasks))
+            {
+                CharacterFameBonuses[result.CharacterId] = result.Bonuses;
+            }
+        }
+    }
+}

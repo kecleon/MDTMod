@@ -1,0 +1,124 @@
+﻿/* ── OptionsMenu.razor.css (replace everything) ────────────── */
+
+/* nav button */
+.nav-item {
+    display: inline-block;
+    cursor: pointer;
+    padding: 3px 8px 0;
+    height: 20px;
+    background: #424242;
+    box-shadow: 2px 2px 8px #111;
+    border: none;
+    letter-spacing: .02em;
+    margin-left: 4px;
+    position: relative;
+    user-select: none;
+}
+
+.handle {
+    position: relative;
+}
+
+/* dropdown panel */
+.options-dropdown {
+    visibility: hidden;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 6px;
+    z-index: 1000;
+    padding: 5px;
+    width: 240px;
+    text-align: left;
+    font: 15px/1 sans-serif;
+    color: #b3b3b3;
+    background: #2c2c2c;
+    box-shadow: 0 0 1px 4px #111;
+    border: none;
+    transition: visibility .5s ease-out;
+}
+
+    .options-dropdown::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: -6px;
+        height: 6px;
+    }
+
+.options-menu:hover .options-dropdown,
+.handle:hover .options-dropdown {
+    visibility: visible;
+}
+
+/* rows */
+.option-item,
+.radio-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 5px;
+    font-size: 15px;
+    color: #c7c7c7; /* ← no margin here */
+}
+
+    .option-item label,
+    .radio-item label {
+        cursor: pointer;
+        margin: 0;
+        display: inline;
+    }
+
+.options-dropdown input {
+    float: left;
+    clear: left;
+    margin: 4px;
+    cursor: pointer;
+}
+
+    .options-dropdown label:hover,
+    .options-dropdown input:hover + label {
+        background: #253c63 !important;
+        color: #fff;
+    }
+
+.group-label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 2px;
+}
+
+/* subgroup container */
+.radio-group {
+    background: #2c2c2c;
+    padding: 4px 0 4px 12px;
+    border-left: 1px solid #444;
+}
+
+/* indentation levels */
+.depth-1 {
+    margin-left: 12px;
+}
+
+.depth-2 {
+    margin-left: 24px;
+}
+
+.depth-3 {
+    margin-left: 36px;
+}
+
+.depth-4 {
+    margin-left: 48px;
+}
+/* add more if ever needed */
+
+/* optional visual cues */
+.depth-3 .group-label {
+    color: #9ad;
+}
+
+.depth-4 .group-label {
+    color: #8c8;
+}

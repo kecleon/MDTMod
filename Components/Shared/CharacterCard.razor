@@ -1,0 +1,256 @@
+@using MDTadusMod.Data
+@using MDTadusMod.Services
+@using RotMGAssetExtractor.Model
+@using System.Diagnostics
+@inject SettingsService SettingsManager
+
+<div class="char">
+    @if (ViewOptions.CharDescription)
+    {
+        <div class="chdesc">
+            <SpriteCard Type="@(Character.Skin != 0 ? Character.Skin : Character.ObjectType)" BackgroundOff="true"></SpriteCard>
+            <div>
+                <div style="padding-top: 3px;">
+                    <span class="">@GetClassName(Character.ObjectType) @Character.Level, @(MaxedStats.Count)/8, #@Character.Id</span>
+                </div>
+                <div>@Character.CurrentFame F @FormatNumber(Character.Exp) XP</div>
+            </div>
+        </div>
+    }
+
+    @if (ViewOptions.Stats)
+    {
+        <table class="stats">
+            <tbody>
+                <tr>
+                    <td class="sname">HP</td>
+                    <td><strong class="stat @(MaxedStats.IsMaxed("MaxHitPoints") ? "maxed" : "")">@Character.MaxHitPoints</strong></td>
+                    <td class="sname">MP</td>
+                    <td><strong class="stat @(MaxedStats.IsMaxed("MaxMagicPoints") ? "maxed" : "")">@Character.MaxMagicPoints</strong></td>
+                </tr>
+                <tr>
+                    <td class="sname">ATT</td>
+                    <td><strong class="stat @(MaxedStats.IsMaxed("Attack") ? "maxed" : "")">@Character.Attack</strong></td>
+                    <td class="sname">DEF</td>
+                    <td><strong class="stat @(MaxedStats.IsMaxed("Defense") ? "maxed" : "")">@Character.Defense</strong></td>
+                </tr>
+                <tr>
+                    <td class="sname">SPD</td>
+                    <td><strong class="stat @(MaxedStats.IsMaxed("Speed") ? "maxed" : "")">@Character.Speed</strong></td>
+                    <td class="sname">DEX</td>
+                    <td><strong class="stat @(MaxedStats.IsMaxed("Dexterity") ? "maxed" : "")">@Character.Dexterity</strong></td>
+                </tr>
+                <tr>
+                    <td class="sname">VIT</td>
+                    <td><strong class="stat @(MaxedStats.IsMaxed("Vitality") ? "maxed" : "")">@Character.Vitality</strong></td>
+                    <td class="sname">WIS</td>
+                    <td><strong class="stat @(MaxedStats.IsMaxed("Wisdom") ? "maxed" : "")">@Character.Wisdom</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    }
+
+    <div class="items">
+        @if (ViewOptions.Equipment)
+        {
+            <div class="itemsc equipment">
+                @for (int i = 0; i < 4; i++)
+                {
+                    <SpriteCard Type="@(Equipment.Length > i ? Equipment[i] : -1)"></SpriteCard>
+                }
+            </div>
+        }
+        @if (ViewOptions.Inventory)
+        {
+            <div class="itemsc inv">
+                @for (int i = 4; i < Equipment.Length; i++)
+                {
+                    <SpriteCard Type="@(Equipment[i])"></SpriteCard>
+                }
+            </div>
+        }
+    </div>
+
+    @if (ViewOptions.AdditionalStats || ViewOptions.AdditionalBonuses)
+    {
+        <table class="pcstats">
+            <tbody>
+                @if (ViewOptions.AdditionalStats)
+                {
+                    @foreach (var stat in Character.ParsedPCStats.OrderBy(s => s.Key))
+                    {
+                        <tr>
+                            <td>@GetPCStatName(stat.Key)</td>
+                            <td class="pcstat">@FormatNumber(stat.Value)</td>
+                        </tr>
+                    }
+                }
+                @if ((ViewOptions.AdditionalBonuses) && CharacterFameBonuses.TryGetValue(Character.Id, out var bonuses) && bonuses.Any())
+                {
+                    string currentGroup = null;
+                    var renderedCategories = new HashSet<string>();
+
+                    for (int i = 0; i < bonuses.Count; i++)
+                    {
+                        var bonus = bonuses[i];
+
+                        if (bonus.DisplayGroup != currentGroup)
+                        {
+                            currentGroup = bonus.DisplayGroup;
+                            renderedCategories.Clear();
+                            if (!string.IsNullOrEmpty(currentGroup))
+                            {
+                                <tr>
+                                    <td class="bonus-group-header"><strong>@currentGroup</strong></td>
+                                    <td></td>
+                                </tr>
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(bonus.DisplayCategory))
+                        {
+                            if (renderedCategories.Add(bonus.DisplayCategory))
+                            {
+                                var categoryBonuses = bonuses
+                                    .Where(b => b.DisplayGroup == currentGroup && b.DisplayCategory == bonus.DisplayCategory)
+                                    .ToList();
+
+                                <tr>
+                                    <td>@bonus.DisplayCategory</td>
+                                    <td class="bonus">+@categoryBonuses.Sum(b => CalculateBonusIncrement(b))</td>
+                                </tr>
+                            }
+                        }
+                        else if (ViewOptions.AdditionalBonuses)
+                        {
+                            <tr>
+                                <td>@bonus.DisplayName</td>
+                                <td class="bonus">+@CalculateBonusIncrement(bonus)</td>
+                            </tr>
+                        }
+                    }
+                }
+                @if (ViewOptions.AdditionalBonuses)
+                {
+                    <tr>
+                        <td><strong>Total Fame</strong></td>
+                        <td class="bonus"><strong>@TotalFame</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+
+@code {
+    [Parameter, EditorRequired]
+    public Character Character { get; set; }
+
+    [Parameter, EditorRequired]
+    public AccountViewOptions ViewOptions { get; set; }
+
+    [Parameter, EditorRequired]
+    public Dictionary<int, Dictionary<string, int>> MaxStatsPerClass { get; set; }
+
+    [Parameter, EditorRequired]
+    public Dictionary<int, string> ClassIdToNameMap { get; set; }
+
+    [Parameter, EditorRequired]
+    public Dictionary<int, string> PCStatIdToNameMap { get; set; }
+
+    [Parameter, EditorRequired]
+    public Dictionary<int, List<FameBonus>> CharacterFameBonuses { get; set; }
+
+    private (int Count, Func<string, bool> IsMaxed) MaxedStats;
+    private int[] Equipment = Array.Empty<int>();
+    private int TotalFame;
+
+    protected override void OnParametersSet()
+    {
+        // Fallback to global settings if account-specific options are not provided.
+        if (ViewOptions == null)
+        {
+            ViewOptions = SettingsManager.GlobalOptions;
+        }
+
+        MaxedStats = GetMaxedStats(Character);
+        Equipment = Character.Equipment?.Split(',').Select(int.Parse).ToArray() ?? Array.Empty<int>();
+
+        if (CharacterFameBonuses.TryGetValue(Character.Id, out var bonuses))
+        {
+            TotalFame = PCStatsParser.CalculateTotalFame(Character.CurrentFame, bonuses);
+        }
+        else
+        {
+            TotalFame = Character.CurrentFame;
+        }
+    }
+
+    private int CalculateBonusIncrement(FameBonus bonus)
+    {
+        // Convert relative bonus from percentage to a multiplier
+        double increment = Math.Ceiling(Character.CurrentFame * (bonus.RelativeBonus / 100f));
+
+        // Add the absolute bonus.
+        increment += bonus.AbsoluteBonus;
+
+        return (int)increment;
+    }
+
+    private string GetClassName(int objectType)
+    {
+        return ClassIdToNameMap.GetValueOrDefault(objectType, "Unknown");
+    }
+
+    private string GetPCStatName(int statId)
+    {
+        return PCStatIdToNameMap.GetValueOrDefault(statId, $"#{statId}");
+    }
+
+    private (int Count, Func<string, bool> IsMaxed) GetMaxedStats(Character character)
+    {
+        if (character == null || MaxStatsPerClass == null || !MaxStatsPerClass.TryGetValue(character.ObjectType, out var maxStats))
+        {
+            return (0, s => false);
+        }
+
+        var maxed = new Dictionary<string, bool>();
+        int maxedCount = 0;
+
+        void CheckStat(string name, int value)
+        {
+            if (maxStats.TryGetValue(name, out var maxStatValue) && value >= maxStatValue)
+            {
+                maxed[name] = true;
+                maxedCount++;
+            }
+            else
+            {
+                maxed[name] = false;
+            }
+        }
+
+        CheckStat("MaxHitPoints", character.MaxHitPoints);
+        CheckStat("MaxMagicPoints", character.MaxMagicPoints);
+        CheckStat("Attack", character.Attack);
+        CheckStat("Defense", character.Defense);
+        CheckStat("Speed", character.Speed);
+        CheckStat("Dexterity", character.Dexterity);
+        CheckStat("Vitality", character.Vitality);
+        CheckStat("Wisdom", character.Wisdom);
+
+        return (maxedCount, s => maxed.GetValueOrDefault(s));
+    }
+
+    private string FormatNumber(long num)
+    {
+        if (num >= 1000000000)
+            return (num / 1000000000D).ToString("0") + "B";
+        if (num >= 1000000)
+            return (num / 1000000D).ToString("0") + "M";
+        if (num >= 1000)
+            return (num / 1000D).ToString("0") + "K";
+        return num.ToString("N0");
+    }
+}

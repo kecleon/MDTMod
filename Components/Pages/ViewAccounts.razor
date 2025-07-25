@@ -1,0 +1,102 @@
+@page "/"
+@page "/view-accounts"
+@inject Services.AccountService AccountSvc
+@inject Services.RotmgApiService RotmgApiSvc
+@inject NavigationManager NavManager
+@inject Services.SettingsService SettingsManager
+@implements IDisposable
+
+@if (accounts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!accounts.Any())
+{
+    <p>No accounts found.</p>
+}
+else
+{
+    <div class="account-list">
+        @foreach (var account in accounts)
+        {
+            <AccountCard Account="@account"
+                         AccountData="@(accountDataMap.GetValueOrDefault(account.Id))"
+                         ViewOptions="@SettingsManager.GlobalOptions"
+                         Status="@(refreshStatus.ContainsKey(account.Id) ? refreshStatus[account.Id] : "Idle")"
+                         IsRefreshing="@(isRefreshing.Contains(account.Id))"
+                         OnRefreshClicked="@(() => RefreshAccountData(account))"
+                         OnDetailsClicked="@(() => ViewDetails(account.Id))" />
+        }
+    </div>
+}
+
+@code {
+    private List<MDTadusMod.Data.Account> accounts;
+    private Dictionary<Guid, MDTadusMod.Data.AccountData> accountDataMap = new();
+    private Dictionary<Guid, string> refreshStatus = new();
+    private HashSet<Guid> isRefreshing = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SettingsManager.OnChange += StateHasChanged; // Subscribe to changes
+        accounts = await AccountSvc.GetAccountsAsync();
+        if (accounts != null)
+        {
+            foreach (var acc in accounts)
+            {
+                refreshStatus[acc.Id] = "Idle";
+                var data = await AccountSvc.GetAccountDataAsync(acc.Id);
+                if (data != null)
+                {
+                    accountDataMap[acc.Id] = data;
+                }
+            }
+        }
+    }
+
+    private void ViewDetails(Guid accountId)
+    {
+        NavManager.NavigateTo($"/account-details/{accountId}");
+    }
+
+    private async Task RefreshAccountData(MDTadusMod.Data.Account account)
+    {
+        if (isRefreshing.Contains(account.Id)) return;
+
+        isRefreshing.Add(account.Id);
+        refreshStatus[account.Id] = "Refreshing...";
+        StateHasChanged();
+
+        try
+        {
+            var accountData = await RotmgApiSvc.GetAccountDataAsync(account);
+            await AccountSvc.SaveAccountDataAsync(accountData);
+            accountDataMap[account.Id] = accountData; // Update the map with fresh data
+
+            if (accountData.PasswordError)
+            {
+                refreshStatus[account.Id] = "Password Error";
+            }
+            else
+            {
+                refreshStatus[account.Id] = "Success";
+                System.Diagnostics.Debug.WriteLine($"Char List for {account.Email} processed.");
+            }
+        }
+        catch (Exception ex)
+        {
+            refreshStatus[account.Id] = "Error";
+            System.Diagnostics.Debug.WriteLine($"Error refreshing account {account.Email}: {ex.Message}");
+        }
+        finally
+        {
+            isRefreshing.Remove(account.Id);
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        SettingsManager.OnChange -= StateHasChanged; // Unsubscribe to prevent memory leaks
+    }
+}

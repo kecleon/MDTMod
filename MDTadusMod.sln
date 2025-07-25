@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MDTadusMod", "MDTadusMod.csproj", "{4E887ED4-E0BB-414A-A81D-8827956C8AB5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RotMGAssetExtractor", "..\RotMGAssetExtractor\RotMGAssetExtractor.csproj", "{A032C868-12CF-824A-242E-1AD7AEA5E3F8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4E887ED4-E0BB-414A-A81D-8827956C8AB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E887ED4-E0BB-414A-A81D-8827956C8AB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E887ED4-E0BB-414A-A81D-8827956C8AB5}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{4E887ED4-E0BB-414A-A81D-8827956C8AB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E887ED4-E0BB-414A-A81D-8827956C8AB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E887ED4-E0BB-414A-A81D-8827956C8AB5}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{A032C868-12CF-824A-242E-1AD7AEA5E3F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A032C868-12CF-824A-242E-1AD7AEA5E3F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A032C868-12CF-824A-242E-1AD7AEA5E3F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A032C868-12CF-824A-242E-1AD7AEA5E3F8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5CC963E1-421A-408D-81B3-C3CC02DA0D27}
+	EndGlobalSection
+EndGlobal
