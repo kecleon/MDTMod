@@ -4,11 +4,13 @@
 @using System.Diagnostics
 @inject AssetService AssetService
 @inject SettingsService SettingsManager
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
 
 @if (Account != null && ViewOptions != null)
 {
     int batchSize = 8;
-    <div class="mule">
+    <div @ref="_muleContainer" class="mule">
         <header>
                 <span class="scont">
                     <span>@(AccountData?.Star)</span>
@@ -25,10 +27,34 @@
 
         @if (ViewOptions.Characters)
         {
-            <div class="chars">
+            <div class="chars" style="--char-row-length: @_effectiveCharRowLength;">
                 @if (AccountData?.Characters?.Any() == true)
                 {
-                    foreach (var character in AccountData.Characters.OrderBy(c => c.Id))
+                    IOrderedEnumerable<Character> orderedCharacters;
+                    switch (ViewOptions.CharOrder)
+                    {
+                        case CharOrder.PlayTime:
+                            // Assuming higher fame indicates more playtime.
+                            orderedCharacters = AccountData.Characters.OrderByDescending(c => c.CurrentFame); // whateverstat is playtime);
+                            break;
+                        case CharOrder.Class:
+                            orderedCharacters = AccountData.Characters.OrderBy(c => c.ObjectType);
+                            break;
+                        case CharOrder.BaseFame:
+                            orderedCharacters = AccountData.Characters.OrderByDescending(c => c.CurrentFame);
+                            break;
+                        case CharOrder.TotalFame:
+                            orderedCharacters = AccountData.Characters.OrderByDescending(c => PCStatsParser.CalculateTotalFame(c.CurrentFame, CharacterFameBonuses.GetValueOrDefault(c.Id, new List<FameBonus>())));
+                            break;
+                        case CharOrder.MaxedStats:
+                            orderedCharacters = AccountData.Characters.OrderByDescending(c => CharacterMaxedStatsCount.GetValueOrDefault(c.Id, 0));
+                            break;
+                        default:
+                            orderedCharacters = AccountData.Characters.OrderBy(c => c.Id);
+                            break;
+
+                    }
+                    foreach (var character in orderedCharacters)
                     {
                         <CharacterCard Character="character"
                                        ViewOptions="ViewOptions"
@@ -48,7 +74,7 @@
         @if (ViewOptions.Vaults && AccountData?.Vault?.Chests?.Any() == true)
         {
             var vaultItems = AccountData.Vault.Chests.SelectMany(c => c.Items).ToList();
-            <div class="vaults">
+            <div class="vaults" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < vaultItems.Count; i += batchSize)
                 {
                     <div class="item-container">
@@ -65,7 +91,7 @@
         @if (ViewOptions.Potions && AccountData?.Potions?.Any() == true)
         {
             var potions = AccountData.Potions;
-            <div class="potions">
+            <div class="potions" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < potions.Count; i += batchSize)
                 {
                     <div class="item-container">
@@ -82,7 +108,7 @@
         @if (ViewOptions.Materials && AccountData?.MaterialStorage?.Chests?.Any() == true)
         {
             var materialItems = AccountData.MaterialStorage.Chests.SelectMany(c => c.Items).ToList();
-            <div class="materials">
+            <div class="materials" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < materialItems.Count; i += batchSize)
                 {
                     <div class="item-container">
@@ -99,7 +125,7 @@
         @if (ViewOptions.Spoils && AccountData?.TemporaryGifts?.Any() == true)
         {
             var spoils = AccountData.TemporaryGifts;
-            <div class="spoils">
+            <div class="spoils" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < spoils.Count; i += batchSize)
                 {
                     <div class="item-container">
@@ -116,7 +142,7 @@
         @if (ViewOptions.Gifts && AccountData?.Gifts?.Any() == true)
         {
             var items = AccountData.Gifts;
-            <div class="gifts">
+            <div class="gifts" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < items.Count; i += batchSize)
                 {
                     <div class="item-container">
@@ -160,15 +186,41 @@
     private Dictionary<int, string> ClassIdToNameMap = new();
     private Dictionary<int, string> PCStatIdToNameMap = new();
     private Dictionary<int, List<FameBonus>> CharacterFameBonuses = new();
+    private Dictionary<int, int> CharacterMaxedStatsCount = new();
+
+    private ElementReference _muleContainer;
+    private int _effectiveCharRowLength;
+    private DotNetObjectReference<AccountCard> _dotNetObjectReference;
+
 
     protected override async Task OnInitializedAsync()
     {
+        _dotNetObjectReference = DotNetObjectReference.Create(this);
         // Fallback if the parameter is not provided
         if (ViewOptions == null)
         {
             ViewOptions = SettingsManager.GlobalOptions;
         }
+        // Set initial value from settings to prevent starting at 1
+        _effectiveCharRowLength = ViewOptions.CharRowLength;
+        SettingsManager.OnChange += HandleSettingsChanged;
         MaxStatsPerClass = await AssetService.GetMaxStatsPerClass();
+    }
+
+    private async void HandleSettingsChanged()
+    {
+        // When settings change, we need to re-evaluate the row length.
+        // We can do this by getting the current body width and calling our existing logic.
+        try
+        {
+            var bodyWidth = await JSRuntime.InvokeAsync<double>("getBodyWidth");
+            OnElementResized(bodyWidth);
+        }
+        catch (Exception ex)
+        {
+            // Handle potential JS interop errors
+            Debug.WriteLine($"[AccountCard] Failed to recalculate row length on settings change: {ex.Message}");
+        }
     }
 
     protected override async Task OnParametersSetAsync()
@@ -177,6 +229,7 @@
         if (AccountData?.Characters?.Any() == true)
         {
             CharacterFameBonuses.Clear();
+            CharacterMaxedStatsCount.Clear();
             // Fetch class names for any new class IDs
             var classTasks = AccountData.Characters
                 .Select(c => c.ObjectType)
@@ -211,6 +264,69 @@
             {
                 CharacterFameBonuses[result.CharacterId] = result.Bonuses;
             }
+
+            var maxedStatsTasks = AccountData.Characters.Select(async c => new
+            {
+                CharacterId = c.Id,
+                Count = await AssetService.GetMaxedStatsCount(c)
+            });
+
+            foreach (var result in await Task.WhenAll(maxedStatsTasks))
+            {
+                CharacterMaxedStatsCount[result.CharacterId] = result.Count;
+            }
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("observeResize", _dotNetObjectReference, _muleContainer);
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    [JSInvokable]
+    public void OnElementResized(double bodyWidth)
+    {
+        if (ViewOptions == null) return;
+
+        var somethingChanged = false;
+
+        // --- Character Row Calculation ---
+        if (ViewOptions.Characters && AccountData?.Characters?.Any() == true && bodyWidth > 0)
+        {
+            const double cardWidth = 180;
+            const double gap = 5;
+            const double safetyMargin = 20;
+
+            var effectiveWidth = bodyWidth - safetyMargin;
+            var maxFit = Math.Floor((effectiveWidth + gap) / (cardWidth + gap));
+            var newLength = Math.Min(ViewOptions.CharRowLength, (int)maxFit);
+            newLength = Math.Min(newLength, AccountData.Characters.Count);
+            var newEffectiveLength = Math.Max(1, newLength);
+
+            if (newEffectiveLength != _effectiveCharRowLength)
+            {
+                _effectiveCharRowLength = newEffectiveLength;
+                somethingChanged = true;
+            }
+        }
+
+        if (somethingChanged)
+        {
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        SettingsManager.OnChange -= HandleSettingsChanged;
+        if (_muleContainer.Id != null)
+        {
+            await JSRuntime.InvokeVoidAsync("unobserveResize", _muleContainer);
+        }
+        _dotNetObjectReference?.Dispose();
     }
 }

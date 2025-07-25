@@ -3,6 +3,7 @@
     cursor: default;
     font: 12px Arial,sans-serif;
     margin: 0;
+    overflow-x: hidden;
 }
 
 .btn-primary {

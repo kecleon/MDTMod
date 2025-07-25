@@ -4,9 +4,8 @@ using System.Diagnostics;
 using RotMGAssetExtractor.Flatc;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using System.IO;
-using RotMGAssetExtractor.ModelHelpers;
 using System.Reflection;
+using RotMGAssetExtractor.ModelHelpers;
 
 namespace MDTadusMod.Services
 {
@@ -211,6 +210,27 @@ namespace MDTadusMod.Services
 
             bool isMaxed = currentStatValue >= maxStatValue;
             return isMaxed;
+        }
+
+        public static async Task<int> GetMaxedStatsCount(Character character)
+        {
+            if (!await Ready() || character == null)
+            {
+                return 0;
+            }
+
+            int maxedStatsCount = 0;
+            var statNames = new[] { "health", "magic", "attack", "defense", "speed", "dexterity", "vitality", "wisdom" };
+
+            foreach (var statName in statNames)
+            {
+                if (await IsStatMaxed(character, statName))
+                {
+                    maxedStatsCount++;
+                }
+            }
+
+            return maxedStatsCount;
         }
 
         public static async Task<Dictionary<string, int>> GetMaxStatsForClass(int classType)

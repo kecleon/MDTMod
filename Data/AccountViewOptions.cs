@@ -2,13 +2,19 @@
 {
     public class AccountViewOptions
     {
+        private int _charRowLength = 8; // Default value
+
         public bool Email { get; set; } // global
         public bool IGN { get; set; } // global
         public bool Info { get; set; } // global
 
         public bool Characters { get; set; } // has alot of sub options
         public CharOrder CharOrder { get; set; } // could be a list that the player selects one
-        public int CharRowLength { get; set; }
+        public int CharRowLength
+        {
+            get => _charRowLength;
+            set => _charRowLength = Math.Clamp(value, 1, 40);
+        }
         public bool CharDescription { get; set; }
         public bool Stats { get; set; }
         public bool Exalts { get; set; } // should be sub option of Stats  true false

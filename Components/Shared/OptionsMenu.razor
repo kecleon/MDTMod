@@ -56,8 +56,9 @@
                     <div class="option-item">
                         <label for="charRowLength">Chars per row</label>
                         <input type="number" id="charRowLength"
+                               min="1" max="40"
                                value="@viewOptions.CharRowLength"
-                               @onchange="(e) => UpdateOption(nameof(viewOptions.CharRowLength), int.Parse(e.Value.ToString()))"
+                               @onchange="(e) => UpdateOption(nameof(viewOptions.CharRowLength), e.Value.ToString())"
                                style="width: 50px;" />
                     </div>
 
@@ -214,13 +215,27 @@
 
     private void UpdateOption(string propertyName, object value)
     {
-        // For checkboxes, the value is a boolean. For other inputs, it needs to be parsed.
-        object parsedValue = value;
-        if (value is bool)
+        var propertyInfo = typeof(AccountViewOptions).GetProperty(propertyName);
+        if (propertyInfo == null) return;
+
+        object parsedValue;
+        if (propertyInfo.PropertyType == typeof(bool) && value is bool boolValue)
         {
-            parsedValue = (bool)value;
+            parsedValue = boolValue;
         }
-        // Add other type parsings if necessary
+        else if (propertyInfo.PropertyType == typeof(int) && int.TryParse(value.ToString(), out int intValue))
+        {
+            parsedValue = intValue;
+        }
+        else if (propertyInfo.PropertyType.IsEnum)
+        {
+            parsedValue = Enum.Parse(propertyInfo.PropertyType, value.ToString());
+        }
+        else
+        {
+            // Skip update if parsing fails or type is unhandled
+            return;
+        }
 
         SettingsManager.UpdateGlobalOption(propertyName, parsedValue);
     }

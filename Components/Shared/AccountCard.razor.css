@@ -86,11 +86,28 @@ p {
     margin: 0 0 0 .25rem;
 }
 
+.vaults,
+.potions,
+.materials,
+.spoils,
+.gifts,
 .chars {
-    display: flex;
-    flex-direction: column; /* This will stack the character cards vertically */
-    padding: 5px;
+    display: grid;
+    /* 
+     * Creates a grid with a specific number of columns defined by --char-row-length.
+     * The '1fr' unit means each column takes up an equal fraction of the available space.
+     * If --char-row-length is not provided, it defaults to 8.
+     */
+    grid-template-columns: repeat(var(--char-row-length, 8), 185px);
+    gap: 5px; /* Use 5px for spacing between cards/items */
+    padding-inline: 5px; /* Adds 5px padding to the left and right */
+    border-top: solid;
+    border-top-width: 2px;
+    border-top-color: #555;
+    padding-top: 5px;
+    padding-bottom: 5px;
 }
+
     .chars > p {
         flex-basis: 100%;
     }
@@ -113,17 +130,4 @@ p {
     overflow: hidden;
     display: flex;
     flex-wrap: wrap;
-}
-
-.vaults,
-.potions,
-.materials,
-.spoils,
-.gifts,
-.chars {
-    border-top: solid;
-    border-top-width: 2px;
-    border-top-color: #555;
-    padding-top: 5px;
-    padding-bottom: 5px;
 }
