@@ -7,9 +7,9 @@
     z-index: 100;
     cursor: pointer;
     background-color: #545454;
-    display: inline-flex;
-    align-items: flex-end; /* Default alignment (for text) */
+    display: flex;
     justify-content: center;
+    align-items: center;
 }
 
 .sprite-card.no-background {
@@ -17,11 +17,11 @@
 }
 
 /* Apply center alignment only when the card contains an image */
-.sprite-card:has(img) {
-    align-items: center;
-}
+    .sprite-card:has(.item-sprite) {
+        align-items: center;
+    }
 
-.sprite-card img {
+.sprite-card .item-sprite {
     width: 80%;
     height: 80%;
     object-fit: contain;
@@ -51,4 +51,11 @@
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+.enchantment-overlay {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    pointer-events: none; /* Prevents overlay from blocking mouse events */
 }

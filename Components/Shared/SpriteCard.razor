@@ -12,7 +12,11 @@
     }
     else if (!string.IsNullOrEmpty(itemImage))
     {
-        <img src="@itemImage" alt="Item ID: @Id" />
+        <img src="@itemImage" alt="Item ID: @Id" class="item-sprite" />
+        @if (!string.IsNullOrEmpty(EnchantmentOverlayImage))
+        {
+            <img src="@EnchantmentOverlayImage" class="enchantment-overlay" alt="Enchantment Overlay" />
+        }
     }
     else if (unknownid && Id != -1)
     {
@@ -36,6 +40,7 @@
     private int Id = -1;
     private string EnchantData;
     private List<KeyValuePair<int, int>> ParsedEnchantments = new();
+    private string EnchantmentOverlayImage;
     private bool unknownid = true;
     private string itemImage;
     private bool isLoading = false;
@@ -53,6 +58,7 @@
         unknownid = true;
         Id = -1;
         EnchantData = null;
+        EnchantmentOverlayImage = null;
         ParsedEnchantments.Clear();
         isLoading = true;
 
@@ -89,29 +95,24 @@
 
     private void SetEnchantmentOverlay()
     {
-        var realEnchantments = ParsedEnchantments
-            .Where(kvp => !(kvp.Key == 5 && kvp.Value == 0))
-            .ToList();
+        // Count the number of actual enchantments, excluding locked slots.
+        var enchantmentCount = ParsedEnchantments.Count(kvp => kvp.Key != -1);
 
-        if (!realEnchantments.Any())
+        if (enchantmentCount == 0)
         {
             EnchantmentOverlayImage = null;
             return;
         }
 
-        // Determine the highest rarity (Value) among the real enchantments
-        var highestRarity = realEnchantments.Max(kvp => kvp.Value);
-
-        // Assign an overlay based on the highest rarity tier.
-        // IMPORTANT: Replace these paths with your actual image files.
-        EnchantmentOverlayImage = highestRarity switch
+        // Assign an overlay based on the number of enchantments.
+        EnchantmentOverlayImage = enchantmentCount switch
         {
-            1 => "/images/enchant_overlay_1.png",
-            2 => "/images/enchant_overlay_2.png",
-            3 => "/images/enchant_overlay_3.png",
-            4 => "/images/enchant_overlay_4.png",
+            1 => "/images/uncommon.png",
+            2 => "/images/rare.png",
+            3 => "/images/legendary.png",
+            4 => "/images/divine.png",
             // Add more cases if you have more rarity tiers
-            _ => null // No overlay for unknown tiers or tier 0
+            _ => null // No overlay for 0 or unhandled counts
         };
     }
 
@@ -130,26 +131,35 @@
         try
         {
             byte[] decodedBytes = Convert.FromBase64String(standardBase64);
+            using var memoryStream = new MemoryStream(decodedBytes);
+            using var reader = new BinaryReader(memoryStream);
 
-            // We identified a 3-byte header. We skip it.
-            const int headerSize = 3;
-            if (decodedBytes.Length <= headerSize) return enchantments;
+            // Skip 3-byte header
+            if (reader.BaseStream.Length < 3) return enchantments;
+            reader.BaseStream.Position = 3;
 
-            // Read the rest of the data in 2-byte chunks (Key, Value)
-            for (int i = headerSize; i < decodedBytes.Length - 1; i += 2)
+            while (reader.BaseStream.Position + 2 <= reader.BaseStream.Length)
             {
-                int key = decodedBytes[i];
-                int value = decodedBytes[i + 1];
+                ushort enchantId = reader.ReadUInt16();
 
-                // The pair 253, 255 (0xFD, 0xFF) appears to mark an empty slot.
-                if (key == 253 && value == 255)
+                if (enchantId == 0xFFFD) // End of enchantments marker
                 {
-                    continue;
+                    break;
                 }
-                enchantments.Add(new KeyValuePair<int, int>(key, value));
+
+                if (enchantId == 0xFFFE) // Locked Enchant Slot
+                {
+                    // Storing with a special key to identify it as a locked slot.
+                    enchantments.Add(new KeyValuePair<int, int>(-1, 0));
+                }
+                else
+                {
+                    // Add a record for the enchantment. The value is not used for rarity.
+                    enchantments.Add(new KeyValuePair<int, int>(0, (int)enchantId));
+                }
             }
         }
-        catch (FormatException ex)
+        catch (Exception ex)
         {
             Debug.WriteLine($"Failed to parse enchantment data for ID {Id}. Error: {ex.Message}");
         }
