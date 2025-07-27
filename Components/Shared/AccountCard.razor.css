@@ -125,8 +125,6 @@ p {
 }
 .item-container {
     width: 176px;
-    margin: 0 2px 0 2px;
-    padding: 0 5px 0 5px;
     overflow: hidden;
     display: flex;
     flex-wrap: wrap;

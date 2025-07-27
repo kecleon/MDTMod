@@ -40,9 +40,6 @@ namespace MDTadusMod.Services
                             .InitAsync(Microsoft.Maui.Storage.FileSystem.AppDataDirectory);
                         await BuildAssetData();
                         _initSucceeded = true;
-                        foreach (var k in SpriteFlatBuffer.GetSprites().Keys)
-                            Debug.WriteLine("Group: " + k);
-
                     }
                     catch (Exception ex)
                     {
@@ -279,7 +276,15 @@ namespace MDTadusMod.Services
 
         public async Task<string> GetItemImageAsBase64Async(int itemId)
         {
-            if (!await Ready()) return null;
+            if (!await Ready())
+            {
+                Debug.WriteLine("[AssetService] Initialization not complete. Cannot retrieve item image " + itemId);
+                return null;
+            }
+            if(itemId == 9505)
+            {
+                Debug.Write("[AssetService] Starting imggathering from character");
+            }
 
 
             if (!_itemModelsById.TryGetValue(itemId, out var itemModel))
@@ -295,7 +300,12 @@ namespace MDTadusMod.Services
             PropertyInfo animatedTextureProp = modelType.GetProperty("AnimatedTexture");
             if (animatedTextureProp != null)
             {
-                texture = animatedTextureProp.GetValue(itemModel) as ITexture;
+                var animatedTexture = animatedTextureProp.GetValue(itemModel) as ITexture;
+                // Check that the texture object exists and its File property is not empty.
+                if (animatedTexture != null && !string.IsNullOrEmpty(animatedTexture.File))
+                {
+                    texture = animatedTexture;
+                }
             }
 
             // Fallback to Texture property if AnimatedTexture is not found or is null
@@ -310,11 +320,18 @@ namespace MDTadusMod.Services
 
             if (texture == null)
             {
-                Debug.WriteLine($"[AssetService] Warning: Texture is null for item ID: {itemId} (Type: {itemModel.GetType().Name})");
+                Debug.WriteLine($"[AssetService] Warning: Texture object is null for item ID: {itemId} (Type: {itemModel.GetType().Name})");
                 return null;
             }
 
-            var image = ImageBuffer.GetImage(texture);
+            // Add a resiliency check to ensure the texture data is valid before proceeding.
+            if (string.IsNullOrEmpty(texture.File))
+            {
+                Debug.WriteLine($"[AssetService] Warning: Texture for item ID {itemId} has an invalid (null or empty) File property. Skipping image retrieval.");
+                return null;
+            }
+
+            var image = ImageBuffer.GetImage(texture, itemId);
 
             if (image == null)
             {

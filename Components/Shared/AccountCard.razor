@@ -180,7 +180,7 @@
 
     [Parameter]
     public EventCallback OnDetailsClicked { get; set; }
-	public bool displayCategoryTitle = true;
+    public bool displayCategoryTitle = true;
 
     private Dictionary<int, Dictionary<string, int>> MaxStatsPerClass;
     private Dictionary<int, string> ClassIdToNameMap = new();
@@ -295,17 +295,28 @@
         var somethingChanged = false;
 
         // --- Character Row Calculation ---
-        if (ViewOptions.Characters && AccountData?.Characters?.Any() == true && bodyWidth > 0)
+        if (ViewOptions.Characters && bodyWidth > 0)
         {
-            const double cardWidth = 180;
-            const double gap = 5;
-            const double safetyMargin = 20;
+            int newEffectiveLength;
 
-            var effectiveWidth = bodyWidth - safetyMargin;
-            var maxFit = Math.Floor((effectiveWidth + gap) / (cardWidth + gap));
-            var newLength = Math.Min(ViewOptions.CharRowLength, (int)maxFit);
-            newLength = Math.Min(newLength, AccountData.Characters.Count);
-            var newEffectiveLength = Math.Max(1, newLength);
+            if (AccountData?.Characters?.Any() == true)
+            {
+                // Calculate length based on screen size and character count
+                const double cardWidth = 180;
+                const double gap = 5;
+                const double safetyMargin = 20;
+
+                var effectiveWidth = bodyWidth - safetyMargin;
+                var maxFit = Math.Floor((effectiveWidth + gap) / (cardWidth + gap));
+                var newLength = Math.Min(ViewOptions.CharRowLength, (int)maxFit);
+                newLength = Math.Min(newLength, AccountData.Characters.Count);
+                newEffectiveLength = Math.Max(1, newLength);
+            }
+            else
+            {
+                // If there are no characters, default the length to 1.
+                newEffectiveLength = 1;
+            }
 
             if (newEffectiveLength != _effectiveCharRowLength)
             {

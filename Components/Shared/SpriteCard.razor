@@ -1,5 +1,6 @@
 @namespace MDTadusMod.Components.Shared
 @using MDTadusMod.Services
+@using System.Diagnostics
 @inject AssetService AssetService
 
 <div class="sprite-card @(BackgroundOff ? "no-background" : "")"
@@ -33,6 +34,8 @@
     public bool BackgroundOff { get; set; }
 
     private int Id = -1;
+    private string EnchantData;
+    private List<KeyValuePair<int, int>> ParsedEnchantments = new();
     private bool unknownid = true;
     private string itemImage;
     private bool isLoading = false;
@@ -49,17 +52,26 @@
         itemImage = null;
         unknownid = true;
         Id = -1;
+        EnchantData = null;
+        ParsedEnchantments.Clear();
         isLoading = true;
 
         if (Type is int id)
         {
             Id = id;
         }
-        else if (Type is string idString)
+        else if (Type is string typeString)
         {
-            if (int.TryParse(idString, out var parsedId))
+            var parts = typeString.Split(':', 2);
+            if (int.TryParse(parts[0], out var parsedId))
             {
                 Id = parsedId;
+                if (parts.Length > 1)
+                {
+                    EnchantData = parts[1];
+                    ParsedEnchantments = ParseEnchantments(EnchantData);
+                    SetEnchantmentOverlay();
+                }
             }
         }
 
@@ -73,5 +85,74 @@
         }
 
         isLoading = false;
+    }
+
+    private void SetEnchantmentOverlay()
+    {
+        var realEnchantments = ParsedEnchantments
+            .Where(kvp => !(kvp.Key == 5 && kvp.Value == 0))
+            .ToList();
+
+        if (!realEnchantments.Any())
+        {
+            EnchantmentOverlayImage = null;
+            return;
+        }
+
+        // Determine the highest rarity (Value) among the real enchantments
+        var highestRarity = realEnchantments.Max(kvp => kvp.Value);
+
+        // Assign an overlay based on the highest rarity tier.
+        // IMPORTANT: Replace these paths with your actual image files.
+        EnchantmentOverlayImage = highestRarity switch
+        {
+            1 => "/images/enchant_overlay_1.png",
+            2 => "/images/enchant_overlay_2.png",
+            3 => "/images/enchant_overlay_3.png",
+            4 => "/images/enchant_overlay_4.png",
+            // Add more cases if you have more rarity tiers
+            _ => null // No overlay for unknown tiers or tier 0
+        };
+    }
+
+    private List<KeyValuePair<int, int>> ParseEnchantments(string enchantData)
+    {
+        var enchantments = new List<KeyValuePair<int, int>>();
+        if (string.IsNullOrEmpty(enchantData)) return enchantments;
+
+        string standardBase64 = enchantData.Replace('_', '/').Replace('-', '+');
+        int padding = standardBase64.Length % 4;
+        if (padding != 0)
+        {
+            standardBase64 += new string('=', 4 - padding);
+        }
+
+        try
+        {
+            byte[] decodedBytes = Convert.FromBase64String(standardBase64);
+
+            // We identified a 3-byte header. We skip it.
+            const int headerSize = 3;
+            if (decodedBytes.Length <= headerSize) return enchantments;
+
+            // Read the rest of the data in 2-byte chunks (Key, Value)
+            for (int i = headerSize; i < decodedBytes.Length - 1; i += 2)
+            {
+                int key = decodedBytes[i];
+                int value = decodedBytes[i + 1];
+
+                // The pair 253, 255 (0xFD, 0xFF) appears to mark an empty slot.
+                if (key == 253 && value == 255)
+                {
+                    continue;
+                }
+                enchantments.Add(new KeyValuePair<int, int>(key, value));
+            }
+        }
+        catch (FormatException ex)
+        {
+            Debug.WriteLine($"Failed to parse enchantment data for ID {Id}. Error: {ex.Message}");
+        }
+        return enchantments;
     }
 }

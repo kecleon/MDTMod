@@ -56,7 +56,9 @@
             <div class="itemsc equipment">
                 @for (int i = 0; i < 4; i++)
                 {
-                    <SpriteCard Type="@(Equipment.Length > i ? Equipment[i] : -1)"></SpriteCard>
+                    var itemId = Equipment.Length > i ? Equipment[i] : -1;
+                    var itemTypeString = GetItemTypeString(itemId);
+                    <SpriteCard Type="@itemTypeString"></SpriteCard>
                 }
             </div>
         }
@@ -65,7 +67,9 @@
             <div class="itemsc inv">
                 @for (int i = 4; i < Equipment.Length; i++)
                 {
-                    <SpriteCard Type="@(Equipment[i])"></SpriteCard>
+                    var itemId = Equipment[i];
+                    var itemTypeString = GetItemTypeString(itemId);
+                    <SpriteCard Type="@itemTypeString"></SpriteCard>
                 }
             </div>
         }
@@ -185,6 +189,23 @@
         {
             TotalFame = Character.CurrentFame;
         }
+    }
+
+    private string GetItemTypeString(int itemId)
+    {
+        if (itemId == -1) return "-1";
+
+        var key = itemId.ToString();
+        if (Character.UniqueItemData.TryGetValue(key, out var enchantList) && enchantList.Any())
+        {
+            // Assuming the first string in the list is the one we need.
+            var enchantData = enchantList.First();
+            if (!string.IsNullOrEmpty(enchantData))
+            {
+                return $"{itemId}:{enchantData}";
+            }
+        }
+        return key;
     }
 
     private int CalculateBonusIncrement(FameBonus bonus)
