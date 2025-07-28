@@ -1,0 +1,78 @@
+@using MDTadusMod.Data
+
+@if (Items?.Any() == true)
+{
+    <div class="@CssClass" style="--char-row-length: @RowLength;">
+        @if (DisplayTitle)
+        {
+            <h5 class="item-container-title">@Title</h5>
+        }
+        @for (int i = 0; i < Items.Count; i += BatchSize)
+        {
+            <div class="item-container">
+                @foreach (var item in Items.Skip(i).Take(BatchSize))
+                {
+                    <SpriteCard Type="@item.Id" Rarity="@GetRarityFromEnchantments(item.RawEnchantData)" />
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; }
+
+    [Parameter, EditorRequired]
+    public string CssClass { get; set; }
+
+    [Parameter, EditorRequired]
+    public List<Item> Items { get; set; }
+
+    [Parameter]
+    public int RowLength { get; set; } = 8;
+
+    [Parameter]
+    public int BatchSize { get; set; } = 8;
+    
+    [Parameter]
+    public bool DisplayTitle { get; set; } = true;
+
+    private int GetRarityFromEnchantments(string enchantData)
+    {
+        if (string.IsNullOrEmpty(enchantData)) return 0;
+
+        string standardBase64 = enchantData.Replace('_', '/').Replace('-', '+');
+        int padding = standardBase64.Length % 4;
+        if (padding != 0)
+        {
+            standardBase64 += new string('=', 4 - padding);
+        }
+        if (standardBase64.Length < 4) return 0;
+        try
+        {
+            byte[] decodedBytes = Convert.FromBase64String(standardBase64);
+            using var memoryStream = new MemoryStream(decodedBytes);
+            using var reader = new BinaryReader(memoryStream);
+
+            if (reader.BaseStream.Length < 3) return 0;
+            reader.BaseStream.Position = 3;
+
+            int enchantmentCount = 0;
+            while (reader.BaseStream.Position + 2 <= reader.BaseStream.Length)
+            {
+                ushort enchantId = reader.ReadUInt16();
+                if (enchantId == 0xFFFD) break;
+                if (enchantId != 0xFFFE)
+                {
+                    enchantmentCount++;
+                }
+            }
+            return enchantmentCount;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+}

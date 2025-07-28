@@ -71,26 +71,17 @@
             </div>
         }
 
-        @if (ViewOptions.Vaults && AccountData?.Vault?.Chests?.Any() == true)
+        @if (ViewOptions.Vaults && AccountData?.Vault?.Items?.Any() == true)
         {
-            var vaultItems = AccountData.Vault.Chests.SelectMany(c => c.Items).ToList();
+            var vaultItems = AccountData.Vault.Items;
             <div class="vaults" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < vaultItems.Count; i += batchSize)
                 {
                     <div class="item-container">
                         @foreach (var item in vaultItems.Skip(i).Take(batchSize))
                         {
-                            var typeStr = item.Id.ToString();
-                            int id = item.Id;
-                            string enchantData = null;
-                            List<string> enchantList = null;
-                            if (AccountData.UniqueItemData != null)
-                                AccountData.UniqueItemData.TryGetValue(typeStr, out enchantList);
-                            if (enchantList != null && enchantList.Count > 0)
-                                enchantData = enchantList[0];
-
-                            int rarity = GetRarityFromEnchantments(enchantData);
-                            <SpriteCard Type="@id" Rarity="@rarity" />
+                            int rarity = GetRarityFromEnchantments(item.RawEnchantData);
+                            <SpriteCard Type="@item.Id" Rarity="@rarity" />
                         }
                     </div>
                 }
@@ -106,34 +97,24 @@
                     <div class="item-container">
                         @foreach (var item in potions.Skip(i).Take(batchSize))
                         {
-                            var typeStr = item.Contains('#') ? item.Split('#')[0] : item;
-                            <SpriteCard Type="@typeStr" />
+                            <SpriteCard Type="@item.Id" Rarity="0" />
                         }
                     </div>
                 }
             </div>
         }
 
-        @if (ViewOptions.Materials && AccountData?.MaterialStorage?.Chests?.Any() == true)
+        @if (ViewOptions.Materials && AccountData?.MaterialStorage?.Items?.Any() == true)
         {
-            var materialItems = AccountData.MaterialStorage.Chests.SelectMany(c => c.Items).ToList();
+            var materialItems = AccountData.MaterialStorage.Items;
             <div class="materials" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < materialItems.Count; i += batchSize)
                 {
                     <div class="item-container">
                         @foreach (var item in materialItems.Skip(i).Take(batchSize))
                         {
-                            var typeStr = item.Id.ToString();
-                            int id = item.Id;
-                            string enchantData = null;
-                            List<string> enchantList = null;
-                            if (AccountData.MaterialStorageItemData != null)
-                                AccountData.MaterialStorageItemData.TryGetValue(typeStr, out enchantList);
-                            if (enchantList != null && enchantList.Count > 0)
-                                enchantData = enchantList[0];
-
-                            int rarity = GetRarityFromEnchantments(enchantData);
-                            <SpriteCard Type="@id" Rarity="@rarity" />
+                            int rarity = GetRarityFromEnchantments(item.RawEnchantData);
+                            <SpriteCard Type="@item.Id" Rarity="@rarity" />
                         }
                     </div>
                 }
@@ -149,17 +130,9 @@
                     <div class="item-container">
                         @foreach (var item in spoils.Skip(i).Take(batchSize))
                         {
-                            var typeStr = item.Id.ToString();
-                            int id = item.Id;
-                            string enchantData = null;
-                            List<string> enchantList = null;
-                            if (AccountData.UniqueTemporaryGiftItemData != null)
-                                AccountData.UniqueTemporaryGiftItemData.TryGetValue(typeStr, out enchantList);
-                            if (enchantList != null && enchantList.Count > 0)
-                                enchantData = enchantList[0];
-
-                            int rarity = GetRarityFromEnchantments(enchantData);
-                            <SpriteCard Type="@id" Rarity="@rarity" />
+                            // The RawEnchantData is already on the item, so we can use it directly.
+                            int rarity = GetRarityFromEnchantments(item.RawEnchantData);
+                            <SpriteCard Type="@item.Id" Rarity="@rarity" />
                         }
                     </div>
                 }
@@ -175,17 +148,9 @@
                     <div class="item-container">
                         @foreach (var item in items.Skip(i).Take(batchSize))
                         {
-                            var typeStr = item.Id.ToString();
-                            int id = item.Id;
-                            string enchantData = null;
-                            List<string> enchantList = null;
-                            if (AccountData.UniqueGiftItemData != null)
-                                AccountData.UniqueGiftItemData.TryGetValue(typeStr, out enchantList);
-                            if (enchantList != null && enchantList.Count > 0)
-                                enchantData = enchantList[0];
-
-                            int rarity = GetRarityFromEnchantments(enchantData);
-                            <SpriteCard Type="@id" Rarity="@rarity" />
+                            // The RawEnchantData is already on the item, so we can use it directly.
+                            int rarity = GetRarityFromEnchantments(item.RawEnchantData);
+                            <SpriteCard Type="@item.Id" Rarity="@rarity" />
                         }
                     </div>
                 }

@@ -20,59 +20,90 @@ namespace MDTadusMod.Data
         public List<Character> Characters { get; set; } = new List<Character>();
         public VaultData Vault { get; set; } = new VaultData();
         public VaultData MaterialStorage { get; set; } = new();
-        public List<string> Potions { get; set; } = new();
+        
+        [XmlArray("Potions")]
+        [XmlArrayItem("Item")]
+        public List<Item> Potions { get; set; } = new();
+
+        [XmlArray("Gifts")]
+        [XmlArrayItem("Item")]
         public List<Item> Gifts { get; set; } = new();
+
+        [XmlArray("TemporaryGifts")]
+        [XmlArrayItem("Item")]
         public List<Item> TemporaryGifts { get; set; } = new();
 
+        // These dictionaries are now only used during live API parsing and will NOT be serialized.
         [XmlIgnore]
-        public Dictionary<string, List<string>> UniqueItemData { get; set; } = new();
+        public Dictionary<string, string> UniqueItemData { get; set; } = new();
         [XmlIgnore]
-        public Dictionary<string, List<string>> UniqueGiftItemData { get; set; } = new();
+        public Dictionary<string, string> UniqueGiftItemData { get; set; } = new();
         [XmlIgnore]
-        public Dictionary<string, List<string>> UniqueTemporaryGiftItemData { get; set; } = new();
+        public Dictionary<string, string> UniqueTemporaryGiftItemData { get; set; } = new();
         [XmlIgnore]
-        public Dictionary<string, List<string>> MaterialStorageItemData { get; set; } = new();
+        public Dictionary<string, string> MaterialStorageItemData { get; set; } = new();
 
-        [XmlArray("UniqueItemData")]
-        [XmlArrayItem("ItemData")]
-        public ItemDataEntry[] SerializableUniqueItemData
+        public void RehydrateAllItems()
         {
-            get => UniqueItemData?.Select(kvp => new ItemDataEntry { Key = kvp.Key, Value = string.Join(",", kvp.Value) }).ToArray();
-            set => UniqueItemData = value?.ToDictionary(i => i.Key, i => (i.Value ?? string.Empty).Split(',').ToList()) ?? new();
-        }
+            // Rehydrate Character Equipment
+            if (Characters != null)
+            {
+                foreach (var character in Characters)
+                {
+                    character.RehydrateEquipment();
+                }
+            }
 
-        [XmlArray("UniqueGiftItemData")]
-        [XmlArrayItem("ItemData")]
-        public ItemDataEntry[] SerializableUniqueGiftItemData
-        {
-            get => UniqueGiftItemData?.Select(kvp => new ItemDataEntry { Key = kvp.Key, Value = string.Join(",", kvp.Value) }).ToArray();
-            set => UniqueGiftItemData = value?.ToDictionary(i => i.Key, i => (i.Value ?? string.Empty).Split(',').ToList()) ?? new();
-        }
+            // Rehydrate Vault Items
+            if (Vault?.Items != null)
+            {
+                foreach (var item in Vault.Items)
+                {
+                    item.ParseEnchantments();
+                }
+            }
 
-        [XmlArray("UniqueTemporaryGiftItemData")]
-        [XmlArrayItem("ItemData")]
-        public ItemDataEntry[] SerializableUniqueTemporaryGiftItemData
-        {
-            get => UniqueTemporaryGiftItemData?.Select(kvp => new ItemDataEntry { Key = kvp.Key, Value = string.Join(",", kvp.Value) }).ToArray();
-            set => UniqueTemporaryGiftItemData = value?.ToDictionary(i => i.Key, i => (i.Value ?? string.Empty).Split(',').ToList()) ?? new();
-        }
+            // Rehydrate Material Storage Items
+            if (MaterialStorage?.Items != null)
+            {
+                foreach (var item in MaterialStorage.Items)
+                {
+                    item.ParseEnchantments();
+                }
+            }
 
-        [XmlArray("MaterialStorageItemData")]
-        [XmlArrayItem("ItemData")]
-        public ItemDataEntry[] SerializableMaterialStorageItemData
-        {
-            get => MaterialStorageItemData?.Select(kvp => new ItemDataEntry { Key = kvp.Key, Value = string.Join(",", kvp.Value) }).ToArray();
-            set => MaterialStorageItemData = value?.ToDictionary(i => i.Key, i => (i.Value ?? string.Empty).Split(',').ToList()) ?? new();
+            // Rehydrate Gifts
+            if (Gifts != null)
+            {
+                foreach (var item in Gifts)
+                {
+                    item.ParseEnchantments();
+                }
+            }
+
+            // Rehydrate Temporary Gifts
+            if (TemporaryGifts != null)
+            {
+                foreach (var item in TemporaryGifts)
+                {
+                    item.ParseEnchantments();
+                }
+            }
+
+            // Rehydrate Potions (safe to call, does nothing if no enchant data)
+            if (Potions != null)
+            {
+                foreach (var item in Potions)
+                {
+                    item.ParseEnchantments();
+                }
+            }
         }
     }
 
     public class VaultData
     {
-        public List<ChestData> Chests { get; set; } = new();
-    }
-
-    public class ChestData
-    {
+        [XmlElement("Item")]
         public List<Item> Items { get; set; } = new();
     }
 }

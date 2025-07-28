@@ -76,11 +76,11 @@ namespace MDTadusMod.Services
                     accountData.GuildRank = (int?)guildElement.Element("Rank") ?? 0;
                 }
 
-                // Parse all enchantment containers from WITHIN the <Account> element.
-                accountData.UniqueItemData = ParseUniqueItemData(accountElement.Element("UniqueItemInfo"));
-                accountData.UniqueGiftItemData = ParseUniqueItemData(accountElement.Element("UniqueGiftItemInfo"));
-                accountData.UniqueTemporaryGiftItemData = ParseUniqueItemData(accountElement.Element("UniqueTemporaryGiftItemInfo"));
-                accountData.MaterialStorageItemData = ParseUniqueItemData(accountElement.Element("MaterialStorageData"));
+                // Use the correct parser for account-level enchantments (which use the 'id' attribute)
+                accountData.UniqueItemData = ParseAccountEnchantmentMap(accountElement.Element("UniqueItemInfo"));
+                accountData.UniqueGiftItemData = ParseAccountEnchantmentMap(accountElement.Element("UniqueGiftItemInfo"));
+                accountData.UniqueTemporaryGiftItemData = ParseAccountEnchantmentMap(accountElement.Element("UniqueTemporaryGiftItemInfo"));
+                accountData.MaterialStorageItemData = ParseAccountEnchantmentMap(accountElement.Element("MaterialStorageData"));
             }
 
             // --- Characters ---
@@ -107,8 +107,8 @@ namespace MDTadusMod.Services
                         PCStats = c.Element("PCStats")?.Value,
                         Seasonal = c.Element("Seasonal") != null,
                         HasBackpack = c.Element("HasBackpack")?.Value == "1",
-                        // This parses the UniqueItemInfo specific to THIS character
-                        UniqueItemData = ParseUniqueItemData(c.Element("UniqueItemInfo"))
+                        // Use the character-specific parser (which uses the 'type' attribute)
+                        UniqueItemData = ParseCharacterEnchantmentMap(c.Element("UniqueItemInfo"))
                     };
 
                     var equipmentString = c.Element("Equipment")?.Value;
@@ -117,10 +117,8 @@ namespace MDTadusMod.Services
                         var itemStrings = equipmentString.Split(',').Where(s => !string.IsNullOrWhiteSpace(s));
                         foreach (var itemStr in itemStrings)
                         {
-                            // Handle potential "id#ref" format for equipment as well
                             var itemId = int.Parse(itemStr.Split('#')[0]);
-                            // Use the CHARACTER's UniqueItemData for its own equipment
-                            character.UniqueItemData.TryGetValue(itemStr, out var enchantList);
+                            character.UniqueItemData.TryGetValue(itemId.ToString(), out var enchantList);
                             character.EquipmentList.Add(new Item(itemId, enchantList?.FirstOrDefault()));
                         }
                     }
@@ -136,17 +134,19 @@ namespace MDTadusMod.Services
                 var vaultElement = accountElement.Element("Vault");
                 if (vaultElement != null)
                 {
-                    foreach (var chestElement in vaultElement.Elements("Chest"))
+                    var allVaultItems = vaultElement.Elements("Chest")
+                        .SelectMany(chest => chest.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)));
+                    
+                    foreach (var itemStr in allVaultItems)
                     {
-                        var chestData = new ChestData();
-                        var itemStrings = chestElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s));
-                        foreach (var itemStr in itemStrings)
+                        var parts = itemStr.Split('#');
+                        var itemId = int.Parse(parts[0]);
+                        string enchantData = null;
+                        if (parts.Length > 1)
                         {
-                            var itemId = int.Parse(itemStr.Split('#')[0]);
-                            accountData.UniqueItemData.TryGetValue(itemStr, out var enchantList);
-                            chestData.Items.Add(new Item(itemId, enchantList?.FirstOrDefault()));
+                            accountData.UniqueItemData.TryGetValue(parts[1], out enchantData);
                         }
-                        accountData.Vault.Chests.Add(chestData);
+                        accountData.Vault.Items.Add(new Item(itemId, enchantData));
                     }
                 }
 
@@ -154,17 +154,19 @@ namespace MDTadusMod.Services
                 var materialStorageElement = accountElement.Element("MaterialStorage");
                 if (materialStorageElement != null)
                 {
-                    foreach (var chestElement in materialStorageElement.Elements("Chest"))
+                    var allMaterialItems = materialStorageElement.Elements("Chest")
+                        .SelectMany(chest => chest.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                    foreach (var itemStr in allMaterialItems)
                     {
-                        var chestData = new ChestData();
-                        var itemStrings = chestElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s));
-                        foreach (var itemStr in itemStrings)
+                        var parts = itemStr.Split('#');
+                        var itemId = int.Parse(parts[0]);
+                        string enchantData = null;
+                        if (parts.Length > 1)
                         {
-                            var itemId = int.Parse(itemStr.Split('#')[0]);
-                            accountData.MaterialStorageItemData.TryGetValue(itemStr, out var enchantList);
-                            chestData.Items.Add(new Item(itemId, enchantList?.FirstOrDefault()));
+                            accountData.MaterialStorageItemData.TryGetValue(parts[1], out enchantData);
                         }
-                        accountData.MaterialStorage.Chests.Add(chestData);
+                        accountData.MaterialStorage.Items.Add(new Item(itemId, enchantData));
                     }
                 }
 
@@ -175,9 +177,14 @@ namespace MDTadusMod.Services
                     var itemStrings = giftsElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s));
                     foreach (var itemStr in itemStrings)
                     {
-                        var itemId = int.Parse(itemStr.Split('#')[0]);
-                        accountData.UniqueGiftItemData.TryGetValue(itemStr, out var enchantList);
-                        accountData.Gifts.Add(new Item(itemId, enchantList?.FirstOrDefault()));
+                        var parts = itemStr.Split('#');
+                        var itemId = int.Parse(parts[0]);
+                        string enchantData = null;
+                        if (parts.Length > 1)
+                        {
+                            accountData.UniqueGiftItemData.TryGetValue(parts[1], out enchantData);
+                        }
+                        accountData.Gifts.Add(new Item(itemId, enchantData));
                     }
                 }
 
@@ -188,9 +195,14 @@ namespace MDTadusMod.Services
                     var itemStrings = tempGiftsElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s));
                     foreach (var itemStr in itemStrings)
                     {
-                        var itemId = int.Parse(itemStr.Split('#')[0]);
-                        accountData.UniqueTemporaryGiftItemData.TryGetValue(itemStr, out var enchantList);
-                        accountData.TemporaryGifts.Add(new Item(itemId, enchantList?.FirstOrDefault()));
+                        var parts = itemStr.Split('#');
+                        var itemId = int.Parse(parts[0]);
+                        string enchantData = null;
+                        if (parts.Length > 1)
+                        {
+                            accountData.UniqueTemporaryGiftItemData.TryGetValue(parts[1], out enchantData);
+                        }
+                        accountData.TemporaryGifts.Add(new Item(itemId, enchantData));
                     }
                 }
 
@@ -198,12 +210,31 @@ namespace MDTadusMod.Services
                 var potionsElement = accountElement.Element("Potions");
                 if (potionsElement != null)
                 {
-                    accountData.Potions = potionsElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                    var itemIds = potionsElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).Select(int.Parse);
+                    foreach (var itemId in itemIds)
+                    {
+                        // Potions don't have enchantments, so the second parameter is null.
+                        accountData.Potions.Add(new Item(itemId, null));
+                    }
                 }
             }
         }
 
-        private Dictionary<string, List<string>> ParseUniqueItemData(XElement uniqueItemInfoElement)
+        // New parser for Account-level enchantments (keyed by instance ID)
+        private Dictionary<string, string> ParseAccountEnchantmentMap(XElement uniqueItemInfoElement)
+        {
+            if (uniqueItemInfoElement == null) return new Dictionary<string, string>();
+            
+            return uniqueItemInfoElement.Elements("ItemData")
+                .Where(el => el.Attribute("id") != null)
+                .ToDictionary(
+                    item => (string)item.Attribute("id"),
+                    item => item.Value
+                );
+        }
+
+        // Renamed original parser for Character-level enchantments (keyed by item type)
+        private Dictionary<string, List<string>> ParseCharacterEnchantmentMap(XElement uniqueItemInfoElement)
         {
             var uniqueItemData = new Dictionary<string, List<string>>();
             if (uniqueItemInfoElement == null)
@@ -216,16 +247,14 @@ namespace MDTadusMod.Services
                 var key = (string)itemElement.Attribute("type");
                 if (string.IsNullOrEmpty(key))
                 {
-                    continue; // Skip if key is invalid
+                    continue;
                 }
 
-                // If the key is not in the dictionary, add it with a new list
                 if (!uniqueItemData.ContainsKey(key))
                 {
                     uniqueItemData[key] = new List<string>();
                 }
                 
-                // Add the item's value to the list for that key
                 uniqueItemData[key].Add(itemElement.Value);
             }
             return uniqueItemData;

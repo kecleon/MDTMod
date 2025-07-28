@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -8,19 +9,15 @@ namespace MDTadusMod.Data
 {
     public class Item
     {
+        [XmlAttribute]
         public int Id { get; set; }
+
+        [XmlAttribute("Enchants")]
+        [DefaultValue("")]
         public string RawEnchantData { get; set; }
 
         [XmlIgnore]
         public List<KeyValuePair<int, int>> ParsedEnchantments { get; private set; } = new();
-
-        [XmlArray("ParsedEnchantments")]
-        [XmlArrayItem("Enchantment")]
-        public EnchantmentEntry[] SerializableParsedEnchantments
-        {
-            get => ParsedEnchantments?.Select(kvp => new EnchantmentEntry { Key = kvp.Key, Value = kvp.Value }).ToArray();
-            set => ParsedEnchantments = value?.Select(e => new KeyValuePair<int, int>(e.Key, e.Value)).ToList() ?? new();
-        }
 
         public Item() { }
         public Item(int id, string rawEnchantData = null)
@@ -37,6 +34,7 @@ namespace MDTadusMod.Data
         {
             if (string.IsNullOrEmpty(RawEnchantData)) return;
 
+            ParsedEnchantments.Clear();
             string standardBase64 = RawEnchantData.Replace('_', '/').Replace('-', '+');
             int padding = standardBase64.Length % 4;
             if (padding != 0)
@@ -74,13 +72,5 @@ namespace MDTadusMod.Data
                 Debug.WriteLine($"Failed to parse enchantment data for ID {Id}. Error: {ex.Message}");
             }
         }
-    }
-
-    public class EnchantmentEntry
-    {
-        [XmlAttribute]
-        public int Key { get; set; }
-        [XmlAttribute]
-        public int Value { get; set; }
     }
 }
