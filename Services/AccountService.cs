@@ -1,5 +1,6 @@
 using MDTadusMod.Data;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
@@ -61,12 +62,26 @@ namespace MDTadusMod.Services
                 return null;
             }
 
-            var serializer = new XmlSerializer(typeof(AccountData));
-            var xmlContent = await File.ReadAllTextAsync(filePath);
-
-            using (var stringReader = new StringReader(xmlContent))
+            try
             {
-                return (AccountData)serializer.Deserialize(stringReader);
+                var serializer = new XmlSerializer(typeof(AccountData));
+                var xmlContent = await File.ReadAllTextAsync(filePath);
+
+                using (var stringReader = new StringReader(xmlContent))
+                {
+                    var data = (AccountData)serializer.Deserialize(stringReader);
+                    // Rehydrate equipment for all characters
+                    if (data?.Characters != null)
+                        foreach (var c in data.Characters)
+                            c.RehydrateEquipment();
+                    return data;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.WriteLine($"[AccountService] Failed to deserialize account data for {accountId}. Deleting cached file. Error: {ex.Message}");
+                File.Delete(filePath);
+                return null;
             }
         }
 

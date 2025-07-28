@@ -56,23 +56,23 @@
             <div class="itemsc equipment">
                 @for (int i = 0; i < 4; i++)
                 {
-                    var itemId = Equipment.Length > i ? Equipment[i] : -1;
-                    var itemTypeString = GetItemTypeString(itemId);
-                    <SpriteCard Type="@itemTypeString"></SpriteCard>
+                    var item = (Character.EquipmentList != null && Character.EquipmentList.Count > i)
+                        ? Character.EquipmentList[i]
+                        : null;
+                    <SpriteCard Type="@(item?.Id ?? -1)" Rarity="@(item != null ? item.ParsedEnchantments.Count(kvp => kvp.Key != -1) : 0)" />
                 }
             </div>
         }
         @if (ViewOptions.Inventory)
+{
+    <div class="itemsc inv">
+        @for (int i = 4; i < (Character.EquipmentList?.Count ?? 0); i++)
         {
-            <div class="itemsc inv">
-                @for (int i = 4; i < Equipment.Length; i++)
-                {
-                    var itemId = Equipment[i];
-                    var itemTypeString = GetItemTypeString(itemId);
-                    <SpriteCard Type="@itemTypeString"></SpriteCard>
-                }
-            </div>
+            var item = Character.EquipmentList[i];
+            <SpriteCard Type="@(item?.Id ?? -1)" Rarity="@(item != null ? item.ParsedEnchantments.Count(kvp => kvp.Key != -1) : 0)" />
         }
+    </div>
+}
     </div>
 
     @if (ViewOptions.AdditionalStats || ViewOptions.AdditionalBonuses)
@@ -167,7 +167,6 @@
     public Dictionary<int, List<FameBonus>> CharacterFameBonuses { get; set; }
 
     private (int Count, Func<string, bool> IsMaxed) MaxedStats;
-    private int[] Equipment = Array.Empty<int>();
     private int TotalFame;
 
     protected override void OnParametersSet()
@@ -179,7 +178,6 @@
         }
 
         MaxedStats = GetMaxedStats(Character);
-        Equipment = Character.Equipment?.Split(',').Select(int.Parse).ToArray() ?? Array.Empty<int>();
 
         if (CharacterFameBonuses.TryGetValue(Character.Id, out var bonuses))
         {
@@ -191,21 +189,59 @@
         }
     }
 
-    private string GetItemTypeString(int itemId)
+    private (int id, int rarity) GetItemDetails(int itemId)
     {
-        if (itemId == -1) return "-1";
+        if (itemId == -1) return (-1, 0);
 
         var key = itemId.ToString();
         if (Character.UniqueItemData.TryGetValue(key, out var enchantList) && enchantList.Any())
         {
-            // Assuming the first string in the list is the one we need.
             var enchantData = enchantList.First();
             if (!string.IsNullOrEmpty(enchantData))
             {
-                return $"{itemId}:{enchantData}";
+                return (itemId, GetRarityFromEnchantments(enchantData));
             }
         }
-        return key;
+        return (itemId, 0);
+    }
+
+    private int GetRarityFromEnchantments(string enchantData)
+    {
+        if (string.IsNullOrEmpty(enchantData)) return 0;
+
+        string standardBase64 = enchantData.Replace('_', '/').Replace('-', '+');
+        int padding = standardBase64.Length % 4;
+        if (padding != 0)
+        {
+            standardBase64 += new string('=', 4 - padding);
+        }
+        if (standardBase64.Length < 4) return 0; // Not enough data to decode
+        try
+        {
+            byte[] decodedBytes = Convert.FromBase64String(standardBase64);
+            using var memoryStream = new MemoryStream(decodedBytes);
+            using var reader = new BinaryReader(memoryStream);
+
+            if (reader.BaseStream.Length < 3) return 0;
+            reader.BaseStream.Position = 3;
+
+            int enchantmentCount = 0;
+            while (reader.BaseStream.Position + 2 <= reader.BaseStream.Length)
+            {
+                ushort enchantId = reader.ReadUInt16();
+                if (enchantId == 0xFFFD) break; // End of enchantments
+                if (enchantId != 0xFFFE) // Not a locked slot
+                {
+                    enchantmentCount++;
+                }
+            }
+            return enchantmentCount;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to parse enchantment data. Error: {ex.Message}");
+            return 0;
+        }
     }
 
     private int CalculateBonusIncrement(FameBonus bonus)

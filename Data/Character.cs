@@ -12,7 +12,7 @@ namespace MDTadusMod.Data
         public int Level { get; set; }
         public int Exp { get; set; }
         public int CurrentFame { get; set; }
-        public string Equipment { get; set; }
+        public List<Item> EquipmentList { get; set; } = new();
         public string EquipQS { get; set; }
         public int MaxHitPoints { get; set; }
         public int MaxMagicPoints { get; set; }
@@ -71,6 +71,19 @@ namespace MDTadusMod.Data
             if (!string.IsNullOrEmpty(PCStats))
             {
                 ParsedPCStats = MDTadusMod.Services.PCStatsParser.Parse(PCStats);
+            }
+        }
+
+        public void RehydrateEquipment()
+        {
+            if (EquipmentList != null)
+            {
+                foreach (var item in EquipmentList)
+                {
+                    // Only re-parse if RawEnchantData is present and ParsedEnchantments is empty
+                    if (!string.IsNullOrEmpty(item.RawEnchantData) && (item.ParsedEnchantments == null || item.ParsedEnchantments.Count == 0))
+                        item.ParseEnchantments();
+                }
             }
         }
     }

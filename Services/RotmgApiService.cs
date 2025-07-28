@@ -91,7 +91,6 @@ namespace MDTadusMod.Services
                         Level = (int?)c.Element("Level") ?? 0,
                         Exp = (int?)c.Element("Exp") ?? 0,
                         CurrentFame = (int?)c.Element("CurrentFame") ?? 0,
-                        Equipment = c.Element("Equipment")?.Value,
                         EquipQS = c.Element("EquipQS")?.Value,
                         MaxHitPoints = (int?)c.Element("MaxHitPoints") ?? 0,
                         MaxMagicPoints = (int?)c.Element("MaxMagicPoints") ?? 0,
@@ -106,6 +105,19 @@ namespace MDTadusMod.Services
                         HasBackpack = c.Element("HasBackpack")?.Value == "1",
                         UniqueItemData = ParseUniqueItemData(c.Element("UniqueItemInfo"))
                     };
+
+                    // Parse EquipmentList from Equipment string
+                    var equipmentString = c.Element("Equipment")?.Value;
+                    if (!string.IsNullOrEmpty(equipmentString))
+                    {
+                        var itemIds = equipmentString.Split(',').Select(int.Parse);
+                        foreach (var itemId in itemIds)
+                        {
+                            character.UniqueItemData.TryGetValue(itemId.ToString(), out var enchantList);
+                            character.EquipmentList.Add(new Item(itemId, enchantList?.FirstOrDefault()));
+                        }
+                    }
+
                     character.ParsePCStats();
                     return character;
                 }).ToList();
