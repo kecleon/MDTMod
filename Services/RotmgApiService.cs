@@ -59,34 +59,38 @@ namespace MDTadusMod.Services
         private void ParseCharListXml(string xml, AccountData accountData)
         {
             var xDoc = XDocument.Parse(xml);
-            Debug.WriteLine($"[XML Raw] {xml}");
-
             var charsElement = xDoc.Root;
-
-            accountData.MaxNumChars = (int?)charsElement.Attribute("maxNumChars") ?? 0;
-
             var accountElement = charsElement.Element("Account");
+
+            // --- Account Info & Account-Level Enchantment Data ---
             if (accountElement != null)
             {
                 accountData.Name = accountElement.Element("Name")?.Value;
                 accountData.Credits = (int?)accountElement.Element("Credits") ?? 0;
                 accountData.Fame = (int?)accountElement.Element("Fame") ?? 0;
-                accountData.Star = (int?)accountElement.Element("Star") ?? 0; // star is not a thing needs to be calculated
+                accountData.MaxNumChars = (int?)charsElement.Attribute("maxNumChars") ?? 0;
                 var guildElement = accountElement.Element("Guild");
                 if (guildElement != null)
                 {
                     accountData.GuildName = guildElement.Element("Name")?.Value;
                     accountData.GuildRank = (int?)guildElement.Element("Rank") ?? 0;
                 }
+
+                // Parse all enchantment containers from WITHIN the <Account> element.
+                accountData.UniqueItemData = ParseUniqueItemData(accountElement.Element("UniqueItemInfo"));
+                accountData.UniqueGiftItemData = ParseUniqueItemData(accountElement.Element("UniqueGiftItemInfo"));
+                accountData.UniqueTemporaryGiftItemData = ParseUniqueItemData(accountElement.Element("UniqueTemporaryGiftItemInfo"));
+                accountData.MaterialStorageItemData = ParseUniqueItemData(accountElement.Element("MaterialStorageData"));
             }
 
+            // --- Characters ---
             accountData.Characters = charsElement.Elements("Char")
                 .Select(c =>
                 {
                     var character = new Character
                     {
                         Id = (int)c.Attribute("id"),
-                        ObjectType = (int)c.Element("ObjectType"),
+                        ObjectType = (int?)c.Element("ObjectType") ?? 0,
                         Skin = (int?)c.Element("Texture") ?? 0,
                         Level = (int?)c.Element("Level") ?? 0,
                         Exp = (int?)c.Element("Exp") ?? 0,
@@ -103,17 +107,20 @@ namespace MDTadusMod.Services
                         PCStats = c.Element("PCStats")?.Value,
                         Seasonal = c.Element("Seasonal") != null,
                         HasBackpack = c.Element("HasBackpack")?.Value == "1",
+                        // This parses the UniqueItemInfo specific to THIS character
                         UniqueItemData = ParseUniqueItemData(c.Element("UniqueItemInfo"))
                     };
 
-                    // Parse EquipmentList from Equipment string
                     var equipmentString = c.Element("Equipment")?.Value;
                     if (!string.IsNullOrEmpty(equipmentString))
                     {
-                        var itemIds = equipmentString.Split(',').Select(int.Parse);
-                        foreach (var itemId in itemIds)
+                        var itemStrings = equipmentString.Split(',').Where(s => !string.IsNullOrWhiteSpace(s));
+                        foreach (var itemStr in itemStrings)
                         {
-                            character.UniqueItemData.TryGetValue(itemId.ToString(), out var enchantList);
+                            // Handle potential "id#ref" format for equipment as well
+                            var itemId = int.Parse(itemStr.Split('#')[0]);
+                            // Use the CHARACTER's UniqueItemData for its own equipment
+                            character.UniqueItemData.TryGetValue(itemStr, out var enchantList);
                             character.EquipmentList.Add(new Item(itemId, enchantList?.FirstOrDefault()));
                         }
                     }
@@ -122,86 +129,77 @@ namespace MDTadusMod.Services
                     return character;
                 }).ToList();
 
-            // Parse Vault
-            var vaultElement = charsElement.Descendants("Vault").FirstOrDefault();
-            if (vaultElement != null)
+            // --- Account-Level Containers (from within the <Account> element) ---
+            if (accountElement != null)
             {
-                var vaultData = new VaultData();
-                foreach (var chestElement in vaultElement.Elements("Chest"))
+                // --- Vault ---
+                var vaultElement = accountElement.Element("Vault");
+                if (vaultElement != null)
                 {
-                    var chestData = new ChestData();
-                    var items = chestElement.Value.Split(',')
-                        .Select(item => item.Trim())
-                        .ToList();
-                    chestData.Items.AddRange(items);
-                    vaultData.Chests.Add(chestData);
+                    foreach (var chestElement in vaultElement.Elements("Chest"))
+                    {
+                        var chestData = new ChestData();
+                        var itemStrings = chestElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s));
+                        foreach (var itemStr in itemStrings)
+                        {
+                            var itemId = int.Parse(itemStr.Split('#')[0]);
+                            accountData.UniqueItemData.TryGetValue(itemStr, out var enchantList);
+                            chestData.Items.Add(new Item(itemId, enchantList?.FirstOrDefault()));
+                        }
+                        accountData.Vault.Chests.Add(chestData);
+                    }
                 }
-                accountData.Vault = vaultData;
-            }
-            else
-            {
-                Debug.WriteLine("[Vault Parsing] ERROR didnt find wtf.");
 
-            }
-
-            // Parse Potions
-            var potionsElement = charsElement.Descendants("Potions").FirstOrDefault();
-            if (potionsElement != null)
-            {
-                accountData.Potions = potionsElement.Value.Split(',')
-                    .Select(item => item.Trim())
-                    .ToList();
-            }
-            else
-            {
-                Debug.WriteLine("[Potions Parsing] No <Potions> element found.");
-            }
-
-            // Parse MaterialStorage
-            var materialStorageElement = charsElement.Descendants("MaterialStorage").FirstOrDefault();
-            if (materialStorageElement != null)
-            {
-                var materialStorageData = new VaultData();
-                foreach (var chestElement in materialStorageElement.Elements("Chest"))
+                // --- Material Storage ---
+                var materialStorageElement = accountElement.Element("MaterialStorage");
+                if (materialStorageElement != null)
                 {
-                    var chestData = new ChestData();
-                    var items = chestElement.Value.Split(',')
-                        .Select(item => item.Trim())
-                        .ToList();
-                    chestData.Items.AddRange(items);
-                    materialStorageData.Chests.Add(chestData);
+                    foreach (var chestElement in materialStorageElement.Elements("Chest"))
+                    {
+                        var chestData = new ChestData();
+                        var itemStrings = chestElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s));
+                        foreach (var itemStr in itemStrings)
+                        {
+                            var itemId = int.Parse(itemStr.Split('#')[0]);
+                            accountData.MaterialStorageItemData.TryGetValue(itemStr, out var enchantList);
+                            chestData.Items.Add(new Item(itemId, enchantList?.FirstOrDefault()));
+                        }
+                        accountData.MaterialStorage.Chests.Add(chestData);
+                    }
                 }
-                accountData.MaterialStorage = materialStorageData;
-            }
-            else
-            {
-                Debug.WriteLine("[MaterialStorage Parsing] No <MaterialStorage> element found.");
-            }
 
-            // Parse Gifts
-            var giftsElement = charsElement.Descendants("Gifts").FirstOrDefault();
-            if (giftsElement != null)
-            {
-                accountData.Gifts = giftsElement.Value.Split(',')
-                    .Select(item => item.Trim())
-                    .ToList();
-            }
-            else
-            {
-                Debug.WriteLine("[Gifts Parsing] No <Gifts> element found.");
-            }
+                // --- Gifts ---
+                var giftsElement = accountElement.Element("Gifts");
+                if (giftsElement != null)
+                {
+                    var itemStrings = giftsElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s));
+                    foreach (var itemStr in itemStrings)
+                    {
+                        var itemId = int.Parse(itemStr.Split('#')[0]);
+                        accountData.UniqueGiftItemData.TryGetValue(itemStr, out var enchantList);
+                        accountData.Gifts.Add(new Item(itemId, enchantList?.FirstOrDefault()));
+                    }
+                }
 
-            // Parse TemporaryGifts
-            var tempGiftsElement = charsElement.Descendants("TemporaryGifts").FirstOrDefault();
-            if (tempGiftsElement != null)
-            {
-                accountData.TemporaryGifts = tempGiftsElement.Value.Split(',')
-                    .Select(item => item.Trim())
-                    .ToList();
-            }
-            else
-            {
-                Debug.WriteLine("[TemporaryGifts Parsing] No <TemporaryGifts> element found.");
+                // --- Temporary Gifts ---
+                var tempGiftsElement = accountElement.Element("TemporaryGifts");
+                if (tempGiftsElement != null)
+                {
+                    var itemStrings = tempGiftsElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s));
+                    foreach (var itemStr in itemStrings)
+                    {
+                        var itemId = int.Parse(itemStr.Split('#')[0]);
+                        accountData.UniqueTemporaryGiftItemData.TryGetValue(itemStr, out var enchantList);
+                        accountData.TemporaryGifts.Add(new Item(itemId, enchantList?.FirstOrDefault()));
+                    }
+                }
+
+                // --- Potions (no enchantments) ---
+                var potionsElement = accountElement.Element("Potions");
+                if (potionsElement != null)
+                {
+                    accountData.Potions = potionsElement.Value.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                }
             }
         }
 

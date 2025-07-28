@@ -88,15 +88,6 @@ namespace MDTadusMod.Data
         }
     }
 
-    public class ItemDataEntry
-    {
-        [XmlAttribute("type")]
-        public string Key { get; set; }
-
-        [XmlText]
-        public string Value { get; set; }
-    }
-
     public class PCStatEntry
     {
         [XmlAttribute("index")]
