@@ -43,7 +43,7 @@ function unobserveResize(element) {
     }
 }
 
-// New function to get the body width on demand
-function getBodyWidth() {
-    return document.body.clientWidth;
+function getWidth() {
+    const accountList = document.querySelector('.account-list');
+    return accountList ? accountList.clientWidth : 0;
 }

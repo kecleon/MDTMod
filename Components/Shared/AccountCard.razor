@@ -214,7 +214,7 @@
         // We can do this by getting the current body width and calling our existing logic.
         try
         {
-            var bodyWidth = await JSRuntime.InvokeAsync<double>("getBodyWidth");
+            var bodyWidth = await JSRuntime.InvokeAsync<double>("getWidth");
             OnElementResized(bodyWidth);
         }
         catch (Exception ex)
