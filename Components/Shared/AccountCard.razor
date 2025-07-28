@@ -73,91 +73,27 @@
 
         @if (ViewOptions.Vaults && AccountData?.Vault?.Items?.Any() == true)
         {
-            var vaultItems = AccountData.Vault.Items;
-            <div class="vaults" style="--char-row-length: @_effectiveCharRowLength;">
-                @for (int i = 0; i < vaultItems.Count; i += batchSize)
-                {
-                    var batch = PadBatch(vaultItems.Skip(i).Take(batchSize), batchSize);
-                    <div class="item-container">
-                        @foreach (var item in batch)
-                        {
-                            int rarity = GetRarityFromEnchantments(item.RawEnchantData);
-                            <SpriteCard Type="@item.Id" Rarity="@rarity" />
-                        }
-                    </div>
-                }
-            </div>
+            <ItemContainer Items="AccountData.Vault.Items" class="vaults" style="@($"--char-row-length: {_effectiveCharRowLength};")" />
         }
 
         @if (ViewOptions.Potions && AccountData?.Potions?.Any() == true)
         {
-            var potions = AccountData.Potions;
-            <div class="potions" style="--char-row-length: @_effectiveCharRowLength;">
-                @for (int i = 0; i < potions.Count; i += batchSize)
-                {
-                    var batch = PadBatch(potions.Skip(i).Take(batchSize), batchSize);
-                    <div class="item-container">
-                        @foreach (var item in batch)
-                        {
-                            <SpriteCard Type="@item.Id" Rarity="0" />
-                        }
-                    </div>
-                }
-            </div>
+            <ItemContainer Items="AccountData.Potions" class="potions" style="@($"--char-row-length: {_effectiveCharRowLength};")" />
         }
 
         @if (ViewOptions.Materials && AccountData?.MaterialStorage?.Items?.Any() == true)
         {
-            var materialItems = AccountData.MaterialStorage.Items;
-            <div class="materials" style="--char-row-length: @_effectiveCharRowLength;">
-                @for (int i = 0; i < materialItems.Count; i += batchSize)
-                {
-                    var batch = PadBatch(materialItems.Skip(i).Take(batchSize), batchSize);
-                    <div class="item-container">
-                        @foreach (var item in batch)
-                        {
-                            int rarity = GetRarityFromEnchantments(item.RawEnchantData);
-                            <SpriteCard Type="@item.Id" Rarity="@rarity" />
-                        }
-                    </div>
-                }
-            </div>
+            <ItemContainer Items="AccountData.MaterialStorage.Items" class="materials" style="@($"--char-row-length: {_effectiveCharRowLength};")" />
         }
 
         @if (ViewOptions.Spoils && AccountData?.TemporaryGifts?.Any() == true)
         {
-            var spoils = AccountData.TemporaryGifts;
-            <div class="spoils" style="--char-row-length: @_effectiveCharRowLength;">
-                @for (int i = 0; i < spoils.Count; i += batchSize)
-                {
-                    var batch = PadBatch(spoils.Skip(i).Take(batchSize), batchSize);
-                    <div class="item-container">
-                        @foreach (var item in batch)
-                        {
-                            int rarity = GetRarityFromEnchantments(item.RawEnchantData);
-                            <SpriteCard Type="@item.Id" Rarity="@rarity" />
-                        }
-                    </div>
-                }
-            </div>
+            <ItemContainer Items="AccountData.TemporaryGifts" class="spoils" style="@($"--char-row-length: {_effectiveCharRowLength};")" />
         }
 
         @if (ViewOptions.Gifts && AccountData?.Gifts?.Any() == true)
         {
-            var items = AccountData.Gifts;
-            <div class="gifts" style="--char-row-length: @_effectiveCharRowLength;">
-                @for (int i = 0; i < items.Count; i += batchSize)
-                {
-                    var batch = PadBatch(items.Skip(i).Take(batchSize), batchSize);
-                    <div class="item-container">
-                        @foreach (var item in batch)
-                        {
-                            int rarity = GetRarityFromEnchantments(item.RawEnchantData);
-                            <SpriteCard Type="@item.Id" Rarity="@rarity" />
-                        }
-                    </div>
-                }
-            </div>
+            <ItemContainer Items="AccountData.Gifts" class="gifts" style="@($"--char-row-length: {_effectiveCharRowLength};")" />
         }
     </div>
 }

@@ -1,16 +1,12 @@
 @using MDTadusMod.Data
 
-@if (Items?.Any() == true)
+@if (PaddedItems?.Any() == true)
 {
-    <div class="@CssClass" style="--char-row-length: @RowLength;">
-        @if (DisplayTitle)
-        {
-            <h5 class="item-container-title">@Title</h5>
-        }
-        @for (int i = 0; i < Items.Count; i += BatchSize)
+    <div class="@CssClass" @attributes="FilteredAttributes">
+        @for (int i = 0; i < PaddedItems.Count; i += BatchSize)
         {
             <div class="item-container">
-                @foreach (var item in Items.Skip(i).Take(BatchSize))
+                @foreach (var item in PaddedItems.Skip(i).Take(BatchSize))
                 {
                     <SpriteCard Type="@item.Id" Rarity="@GetRarityFromEnchantments(item.RawEnchantData)" />
                 }
@@ -21,22 +17,49 @@
 
 @code {
     [Parameter, EditorRequired]
-    public string Title { get; set; }
-
-    [Parameter, EditorRequired]
-    public string CssClass { get; set; }
-
-    [Parameter, EditorRequired]
     public List<Item> Items { get; set; }
 
-    [Parameter]
-    public int RowLength { get; set; } = 8;
+    private int BatchSize { get; set; } = 8;
 
-    [Parameter]
-    public int BatchSize { get; set; } = 8;
-    
-    [Parameter]
-    public bool DisplayTitle { get; set; } = true;
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; }
+
+    private List<Item> PaddedItems { get; set; } = new();
+    private string CssClass { get; set; }
+    private IReadOnlyDictionary<string, object> FilteredAttributes { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // Combine the base class with any user-provided class.
+        var cssClass = "item-section";
+        if (AdditionalAttributes?.TryGetValue("class", out var userClass) == true)
+        {
+            cssClass += $" {userClass}";
+        }
+        CssClass = cssClass;
+
+        // Filter out the 'class' attribute so it's not applied twice.
+        FilteredAttributes = AdditionalAttributes?.Where(a => a.Key != "class").ToDictionary(a => a.Key, a => a.Value)
+                             ?? new Dictionary<string, object>();
+
+        if (Items != null)
+        {
+            PaddedItems = new List<Item>(Items);
+            var remainder = PaddedItems.Count % BatchSize;
+            if (remainder > 0)
+            {
+                for (int i = 0; i < BatchSize - remainder; i++)
+                {
+                    PaddedItems.Add(new Item { Id = -1 });
+                }
+            }
+        }
+        else
+        {
+            PaddedItems.Clear();
+        }
+        base.OnParametersSet();
+    }
 
     private int GetRarityFromEnchantments(string enchantData)
     {

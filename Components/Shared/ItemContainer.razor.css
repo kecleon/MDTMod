@@ -1,0 +1,17 @@
+﻿.item-section {
+    display: grid;
+    grid-template-columns: repeat(var(--char-row-length, 8), 180px);
+    gap: 0px;
+    border-top: solid;
+    border-top-width: 2px;
+    border-top-color: #555;
+    padding: 5px 0 5px 0;
+}
+
+.item-container{
+    width: 180px;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
