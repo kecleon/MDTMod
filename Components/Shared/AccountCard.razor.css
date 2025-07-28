@@ -124,8 +124,9 @@ p {
     flex-wrap: wrap;
 }
 .item-container {
-    width: 176px;
+    width: 185px;
     overflow: hidden;
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
 }

@@ -77,8 +77,9 @@
             <div class="vaults" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < vaultItems.Count; i += batchSize)
                 {
+                    var batch = PadBatch(vaultItems.Skip(i).Take(batchSize), batchSize);
                     <div class="item-container">
-                        @foreach (var item in vaultItems.Skip(i).Take(batchSize))
+                        @foreach (var item in batch)
                         {
                             int rarity = GetRarityFromEnchantments(item.RawEnchantData);
                             <SpriteCard Type="@item.Id" Rarity="@rarity" />
@@ -94,8 +95,9 @@
             <div class="potions" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < potions.Count; i += batchSize)
                 {
+                    var batch = PadBatch(potions.Skip(i).Take(batchSize), batchSize);
                     <div class="item-container">
-                        @foreach (var item in potions.Skip(i).Take(batchSize))
+                        @foreach (var item in batch)
                         {
                             <SpriteCard Type="@item.Id" Rarity="0" />
                         }
@@ -110,8 +112,9 @@
             <div class="materials" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < materialItems.Count; i += batchSize)
                 {
+                    var batch = PadBatch(materialItems.Skip(i).Take(batchSize), batchSize);
                     <div class="item-container">
-                        @foreach (var item in materialItems.Skip(i).Take(batchSize))
+                        @foreach (var item in batch)
                         {
                             int rarity = GetRarityFromEnchantments(item.RawEnchantData);
                             <SpriteCard Type="@item.Id" Rarity="@rarity" />
@@ -127,10 +130,10 @@
             <div class="spoils" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < spoils.Count; i += batchSize)
                 {
+                    var batch = PadBatch(spoils.Skip(i).Take(batchSize), batchSize);
                     <div class="item-container">
-                        @foreach (var item in spoils.Skip(i).Take(batchSize))
+                        @foreach (var item in batch)
                         {
-                            // The RawEnchantData is already on the item, so we can use it directly.
                             int rarity = GetRarityFromEnchantments(item.RawEnchantData);
                             <SpriteCard Type="@item.Id" Rarity="@rarity" />
                         }
@@ -145,10 +148,10 @@
             <div class="gifts" style="--char-row-length: @_effectiveCharRowLength;">
                 @for (int i = 0; i < items.Count; i += batchSize)
                 {
+                    var batch = PadBatch(items.Skip(i).Take(batchSize), batchSize);
                     <div class="item-container">
-                        @foreach (var item in items.Skip(i).Take(batchSize))
+                        @foreach (var item in batch)
                         {
-                            // The RawEnchantData is already on the item, so we can use it directly.
                             int rarity = GetRarityFromEnchantments(item.RawEnchantData);
                             <SpriteCard Type="@item.Id" Rarity="@rarity" />
                         }
@@ -340,6 +343,16 @@
             await JSRuntime.InvokeVoidAsync("unobserveResize", _muleContainer);
         }
         _dotNetObjectReference?.Dispose();
+    }
+
+    private IEnumerable<(int Id, string RawEnchantData)> PadBatch(IEnumerable<Item> batch, int batchSize)
+    {
+        var items = batch.Select(item => (item.Id, item.RawEnchantData)).ToList();
+        while (items.Count < batchSize)
+        {
+            items.Add((-1, null)); // -1 for empty slot, no enchant data
+        }
+        return items;
     }
 
     private int GetRarityFromEnchantments(string enchantData)
