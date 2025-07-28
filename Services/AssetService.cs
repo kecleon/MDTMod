@@ -60,36 +60,46 @@ namespace MDTadusMod.Services
 
         private static Task BuildAssetData()
         {
-            // Build Player Class Data
+            // Initialize dictionaries
             _maxStatsPerClass = new Dictionary<int, Dictionary<string, int>>();
             _classIdToNameMap = new Dictionary<int, string>();
-            _itemModelsById = new Dictionary<int, object>(); // Initialize here
+            _itemModelsById = new Dictionary<int, object>();
+            _pcStatIdToNameMap = new Dictionary<int, string>();
+            _pcStatNameToIdMap = new Dictionary<string, int>();
+            _fameBonuses = new Dictionary<int, FameBonus>();
 
-            if (RotMGAssetExtractor.RotMGAssetExtractor.BuildModelsByType.TryGetValue("Player", out var playerObjects))
+            // Build Item and Player Data
+            var itemTypes = new[] { "Player", "Equipment", "Skin", "Dye", "Emote", "Entrance" };
+            foreach (var itemType in itemTypes)
             {
-                var players = playerObjects.Cast<Player>();
-                foreach (var player in players)
+                if (RotMGAssetExtractor.RotMGAssetExtractor.BuildModelsByType.TryGetValue(itemType, out var itemObjects))
                 {
-                    var classStats = new Dictionary<string, int>
+                    foreach (var item in itemObjects.Cast<RotMGAssetExtractor.Model.Object>())
                     {
-                        { "MaxHitPoints", player.MaxHitPoints.Max },
-                        { "MaxMagicPoints", player.MaxMagicPoints.Max },
-                        { "Attack", player.Attack.Max },
-                        { "Defense", player.Defense.Max },
-                        { "Speed", player.Speed.Max },
-                        { "Dexterity", player.Dexterity.Max },
-                        { "Vitality", player.HpRegen.Max }, // Assuming HpRegen maps to Vitality
-                        { "Wisdom", player.MpRegen.Max }   // Assuming MpRegen maps to Wisdom
-                    };
-                    _maxStatsPerClass[player.type] = classStats;
-                    _classIdToNameMap[player.type] = player.id;
-                    _itemModelsById[player.type] = player; // Add player model to the dictionary
+                        _itemModelsById[item.type] = item;
+
+                        // Special handling for Player types
+                        if (item is Player player)
+                        {
+                            var classStats = new Dictionary<string, int>
+                            {
+                                { "MaxHitPoints", player.MaxHitPoints.Max },
+                                { "MaxMagicPoints", player.MaxMagicPoints.Max },
+                                { "Attack", player.Attack.Max },
+                                { "Defense", player.Defense.Max },
+                                { "Speed", player.Speed.Max },
+                                { "Dexterity", player.Dexterity.Max },
+                                { "Vitality", player.HpRegen.Max }, // Assuming HpRegen maps to Vitality
+                                { "Wisdom", player.MpRegen.Max }   // Assuming MpRegen maps to Wisdom
+                            };
+                            _maxStatsPerClass[player.type] = classStats;
+                            _classIdToNameMap[player.type] = player.id;
+                        }
+                    }
                 }
             }
 
             // Build PC Stat Name Data
-            _pcStatIdToNameMap = new Dictionary<int, string>();
-            _pcStatNameToIdMap = new Dictionary<string, int>();
             if (RotMGAssetExtractor.RotMGAssetExtractor.BuildModelsByType.TryGetValue("PlayerStat", out var statObjects))
             {
                 var stats = statObjects.Cast<PlayerStat>();
@@ -115,7 +125,6 @@ namespace MDTadusMod.Services
             }
 
             // Build Fame Bonus Data
-            _fameBonuses = new Dictionary<int, FameBonus>();
             if (RotMGAssetExtractor.RotMGAssetExtractor.BuildModelsByType.TryGetValue("FameBonus", out var fameBonusObjects))
             {
                 var bonuses = fameBonusObjects.Cast<FameBonus>();
@@ -128,36 +137,6 @@ namespace MDTadusMod.Services
             else
             {
                 Debug.WriteLine("[AssetService] 'FameBonus' models not found in asset data.");
-            }
-
-            // Build Item Data
-            if (RotMGAssetExtractor.RotMGAssetExtractor.BuildModelsByType.TryGetValue("Equipment", out var equipmentObjects))
-            {
-                foreach (var item in equipmentObjects.Cast<RotMGAssetExtractor.Model.Object>())
-                {
-                    _itemModelsById[item.type] = item;
-                }
-            }
-            if (RotMGAssetExtractor.RotMGAssetExtractor.BuildModelsByType.TryGetValue("Skin", out var skinObjects))
-            {
-                foreach (var item in skinObjects.Cast<RotMGAssetExtractor.Model.Object>())
-                {
-                    _itemModelsById[item.type] = item;
-                }
-            }
-            if (RotMGAssetExtractor.RotMGAssetExtractor.BuildModelsByType.TryGetValue("Dye", out var dyeObjects))
-            {
-                foreach (var item in dyeObjects.Cast<RotMGAssetExtractor.Model.Object>())
-                {
-                    _itemModelsById[item.type] = item;
-                }
-            }
-            if (RotMGAssetExtractor.RotMGAssetExtractor.BuildModelsByType.TryGetValue("Emote", out var emoteObjects))
-            {
-                foreach (var item in emoteObjects.Cast<RotMGAssetExtractor.Model.Object>())
-                {
-                    _itemModelsById[item.type] = item;
-                }
             }
 
             if (_itemModelsById.Count > 0)
