@@ -145,6 +145,21 @@ namespace MDTadusMod.Services
                     _itemModelsById[item.type] = item;
                 }
             }
+            if (RotMGAssetExtractor.RotMGAssetExtractor.BuildModelsByType.TryGetValue("Dye", out var dyeObjects))
+            {
+                foreach (var item in dyeObjects.Cast<RotMGAssetExtractor.Model.Object>())
+                {
+                    _itemModelsById[item.type] = item;
+                }
+            }
+            if (RotMGAssetExtractor.RotMGAssetExtractor.BuildModelsByType.TryGetValue("Emote", out var emoteObjects))
+            {
+                foreach (var item in emoteObjects.Cast<RotMGAssetExtractor.Model.Object>())
+                {
+                    _itemModelsById[item.type] = item;
+                }
+            }
+
             if (_itemModelsById.Count > 0)
             {
                 Debug.WriteLine($"[AssetService] Loaded {_itemModelsById.Count} textures.");
