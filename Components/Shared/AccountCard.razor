@@ -9,7 +9,6 @@
 
 @if (Account != null && ViewOptions != null)
 {
-    int batchSize = 8;
     <div @ref="_muleContainer" class="mule">
         <header>
                 <span class="scont">
@@ -279,53 +278,5 @@
             await JSRuntime.InvokeVoidAsync("unobserveResize", _muleContainer);
         }
         _dotNetObjectReference?.Dispose();
-    }
-
-    private IEnumerable<(int Id, string RawEnchantData)> PadBatch(IEnumerable<Item> batch, int batchSize)
-    {
-        var items = batch.Select(item => (item.Id, item.RawEnchantData)).ToList();
-        while (items.Count < batchSize)
-        {
-            items.Add((-1, null)); // -1 for empty slot, no enchant data
-        }
-        return items;
-    }
-
-    private int GetRarityFromEnchantments(string enchantData)
-    {
-        if (string.IsNullOrEmpty(enchantData)) return 0;
-
-        string standardBase64 = enchantData.Replace('_', '/').Replace('-', '+');
-        int padding = standardBase64.Length % 4;
-        if (padding != 0)
-        {
-            standardBase64 += new string('=', 4 - padding);
-        }
-        if (standardBase64.Length < 4) return 0; // Not enough data to decode
-        try
-        {
-            byte[] decodedBytes = Convert.FromBase64String(standardBase64);
-            using var memoryStream = new MemoryStream(decodedBytes);
-            using var reader = new BinaryReader(memoryStream);
-
-            if (reader.BaseStream.Length < 3) return 0;
-            reader.BaseStream.Position = 3;
-
-            int enchantmentCount = 0;
-            while (reader.BaseStream.Position + 2 <= reader.BaseStream.Length)
-            {
-                ushort enchantId = reader.ReadUInt16();
-                if (enchantId == 0xFFFD) break; // End of enchantments
-                if (enchantId != 0xFFFE) // Not a locked slot
-                {
-                    enchantmentCount++;
-                }
-            }
-            return enchantmentCount;
-        }
-        catch
-        {
-            return 0;
-        }
     }
 }
