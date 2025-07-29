@@ -19,7 +19,11 @@
     [Parameter, EditorRequired]
     public List<Item> Items { get; set; }
 
-    private int BatchSize { get; set; } = 8;
+    [Parameter]
+    public int BatchSize { get; set; } = 8;
+
+    [Parameter]
+    public bool NoPadding { get; set; } = false;
 
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; }
@@ -36,6 +40,10 @@
         {
             cssClass += $" {userClass}";
         }
+        if (NoPadding)
+        {
+            cssClass += " no-padding";
+        }
         CssClass = cssClass;
 
         // Filter out the 'class' attribute so it's not applied twice.
@@ -45,12 +53,15 @@
         if (Items != null)
         {
             PaddedItems = new List<Item>(Items);
-            var remainder = PaddedItems.Count % BatchSize;
-            if (remainder > 0)
+            if (!NoPadding)
             {
-                for (int i = 0; i < BatchSize - remainder; i++)
+                var remainder = PaddedItems.Count % BatchSize;
+                if (remainder > 0)
                 {
-                    PaddedItems.Add(new Item { Id = -1 });
+                    for (int i = 0; i < BatchSize - remainder; i++)
+                    {
+                        PaddedItems.Add(new Item { Id = -1 });
+                    }
                 }
             }
         }

@@ -5,8 +5,18 @@
     border-top: solid;
     border-top-width: 2px;
     border-top-color: #555;
-    padding: 5px 0 5px 0;
+    padding-top: 5px;
 }
+
+    .item-section.no-padding {
+        border: none;
+        gap: 0;
+        grid-template-columns: repeat(1, 180px);
+    }
+
+    .item-section.equipment {
+        grid-template-columns: repeat(1, 180px);
+    }
 
 .item-container{
     width: 180px;

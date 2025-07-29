@@ -50,30 +50,16 @@
         </table>
     }
 
-    <div class="items">
-        @if (ViewOptions.Equipment)
-        {
-            <div class="itemsc equipment">
-                @for (int i = 0; i < 4; i++)
-                {
-                    var item = (Character.EquipmentList != null && Character.EquipmentList.Count > i)
-                        ? Character.EquipmentList[i]
-                        : null;
-                    <SpriteCard Type="@(item?.Id ?? -1)" Rarity="@(item != null ? item.ParsedEnchantments.Count(kvp => kvp.Key != -1) : 0)" />
-                }
-            </div>
-        }
-        @if (ViewOptions.Inventory)
-{
-    <div class="itemsc inv">
-        @for (int i = 4; i < (Character.EquipmentList?.Count ?? 0); i++)
-        {
-            var item = Character.EquipmentList[i];
-            <SpriteCard Type="@(item?.Id ?? -1)" Rarity="@(item != null ? item.ParsedEnchantments.Count(kvp => kvp.Key != -1) : 0)" />
-        }
-    </div>
-}
-    </div>
+    @if (ViewOptions.Equipment)
+    {
+        <ItemContainer Items="EquipmentItems"
+                        NoPadding = "true" />
+    }
+    @if (ViewOptions.Inventory)
+    {
+        <ItemContainer Items="InventoryItems"
+                       NoPadding="true"/>
+    }
 
     @if (ViewOptions.AdditionalStats || ViewOptions.AdditionalBonuses)
     {
@@ -168,6 +154,8 @@
 
     private (int Count, Func<string, bool> IsMaxed) MaxedStats;
     private int TotalFame;
+    private List<Item> EquipmentItems { get; set; } = new();
+    private List<Item> InventoryItems { get; set; } = new();
 
     protected override void OnParametersSet()
     {
@@ -187,6 +175,17 @@
         {
             TotalFame = Character.CurrentFame;
         }
+
+        // Prepare item lists for the ItemContainer components
+        var equipment = Character.EquipmentList ?? new List<Item>();
+        EquipmentItems = equipment.Take(4).ToList();
+        // Pad equipment to always show 4 slots
+        while (EquipmentItems.Count < 4)
+        {
+            EquipmentItems.Add(new Item { Id = -1 });
+        }
+
+        InventoryItems = equipment.Skip(4).ToList();
     }
 
     private (int id, int rarity) GetItemDetails(int itemId)

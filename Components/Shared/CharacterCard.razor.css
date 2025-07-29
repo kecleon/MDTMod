@@ -3,15 +3,15 @@
     text-align: center;
     padding: 0;
     background-color: #333;
+    margin-bottom:5px;
 }
 
 .chdesc {
     grid-area: desc;
     display: flex;
     align-items: center;
-    gap: 10px;
     white-space: nowrap;
-    width: 185px;
+    width: 180px;
 }
 
     .chdesc  div{
