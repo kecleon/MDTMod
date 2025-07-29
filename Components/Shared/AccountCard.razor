@@ -11,10 +11,13 @@
 {
     <div @ref="_muleContainer" class="mule">
         <header>
+            @if (AccountData?.Star > 0)
+            {
                 <span class="scont">
                     <span>@(AccountData?.Star)</span>
                     <span class="star">★</span>
                 </span>
+            }
             @if (ViewOptions.IGN)
             {
                 <p class="mule-name" style="grid-column: 2;">@(AccountData?.Name ?? Account.Email)</p>
@@ -24,7 +27,7 @@
             </button>
         </header>
 
-        @if (ViewOptions.Characters)
+        @if (!ViewOptions.Shrink && ViewOptions.Characters)
         {
             <div class="chars" style="--char-row-length: @_effectiveCharRowLength;">
                 @if (AccountData?.Characters?.Any() == true)
@@ -70,27 +73,27 @@
             </div>
         }
 
-        @if (ViewOptions.Vaults && AccountData?.Vault?.Items?.Any() == true)
+        @if (!ViewOptions.Shrink && ViewOptions.Vaults && AccountData?.Vault?.Items?.Any() == true)
         {
             <ItemContainer Items="AccountData.Vault.Items" class="vaults" style="@($"--char-row-length: {_effectiveCharRowLength};")" />
         }
 
-        @if (ViewOptions.Potions && AccountData?.Potions?.Any() == true)
+        @if (!ViewOptions.Shrink && ViewOptions.Potions && AccountData?.Potions?.Any() == true)
         {
             <ItemContainer Items="AccountData.Potions" class="potions" style="@($"--char-row-length: {_effectiveCharRowLength};")" />
         }
 
-        @if (ViewOptions.Materials && AccountData?.MaterialStorage?.Items?.Any() == true)
+        @if (!ViewOptions.Shrink && ViewOptions.Materials && AccountData?.MaterialStorage?.Items?.Any() == true)
         {
             <ItemContainer Items="AccountData.MaterialStorage.Items" class="materials" style="@($"--char-row-length: {_effectiveCharRowLength};")" />
         }
 
-        @if (ViewOptions.Spoils && AccountData?.TemporaryGifts?.Any() == true)
+        @if (!ViewOptions.Shrink && ViewOptions.Spoils && AccountData?.TemporaryGifts?.Any() == true)
         {
             <ItemContainer Items="AccountData.TemporaryGifts" class="spoils" style="@($"--char-row-length: {_effectiveCharRowLength};")" />
         }
 
-        @if (ViewOptions.Gifts && AccountData?.Gifts?.Any() == true)
+        @if (!ViewOptions.Shrink && ViewOptions.Gifts && AccountData?.Gifts?.Any() == true)
         {
             <ItemContainer Items="AccountData.Gifts" class="gifts" style="@($"--char-row-length: {_effectiveCharRowLength};")" />
         }
