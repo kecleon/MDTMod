@@ -69,10 +69,38 @@
                 {
                     @foreach (var stat in Character.ParsedPCStats.OrderBy(s => s.Key))
                     {
-                        <tr>
-                            <td>@GetPCStatName(stat.Key)</td>
-                            <td class="pcstat">@FormatNumber(stat.Value)</td>
-                        </tr>
+                        @if (stat.Key == 20)
+                        {
+                            var timeSpan = TimeSpan.FromMinutes(stat.Value);
+                            if (timeSpan.TotalDays >= 1)
+                            {
+                                <tr>
+                                    <td>Days active</td>
+                                    <td class="pcstat">@timeSpan.TotalDays.ToString("0.#")</td>
+                                </tr>
+                            }
+                            else if (timeSpan.TotalHours >= 1)
+                            {
+                                <tr>
+                                    <td>Hours active</td>
+                                    <td class="pcstat">@timeSpan.TotalHours.ToString("0.#")</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td>Minutes active</td>
+                                    <td class="pcstat">@timeSpan.Minutes</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td>@GetPCStatName(stat.Key)</td>
+                                <td class="pcstat">@FormatNumber(stat.Value)</td>
+                            </tr>
+                        }
                     }
                 }
                 @if ((ViewOptions.AdditionalBonuses) && CharacterFameBonuses.TryGetValue(Character.Id, out var bonuses) && bonuses.Any())

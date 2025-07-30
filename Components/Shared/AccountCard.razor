@@ -49,8 +49,7 @@
                     switch (ViewOptions.CharOrder)
                     {
                         case CharOrder.PlayTime:
-                            // Assuming higher fame indicates more playtime.
-                            orderedCharacters = AccountData.Characters.OrderByDescending(c => c.CurrentFame); // whateverstat is playtime);
+                            orderedCharacters = AccountData.Characters.OrderByDescending(c => c.ParsedPCStats.GetValueOrDefault(20, 0L));
                             break;
                         case CharOrder.Class:
                             orderedCharacters = AccountData.Characters.OrderBy(c => c.ObjectType);
