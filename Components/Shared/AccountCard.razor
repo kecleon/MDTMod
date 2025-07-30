@@ -10,28 +10,41 @@
 @if (Account != null && ViewOptions != null)
 {
     <div @ref="_muleContainer" class="mule">
+
+        @if(_showWarningMessage == true){
+            <div class="warning">
+                <p>@AccountData.LastErrorMessage</p>
+                <button @onclick="DismissWarning">X</button>
+            </div>
+        }
+        
+
+
+        @if (ViewOptions.Email)
+        {
+            <input type="text" readonly="readonly" class="guid" value="@Account.Email">
+        }
         <header>
             @if (AccountData?.Star > 0)
             {
                 <span class="scont">
                     <span>@(AccountData?.Star)</span>
-                    <span class="star">★</span>
+                    <span class="star" style="color: @GetStarColor(AccountData.Star)">★</span>
                 </span>
             }
             @if (ViewOptions.IGN)
             {
                 <p class="mule-name" style="grid-column: 2;">@(AccountData?.Name ?? Account.Email)</p>
             }
-            <button @onclick="OnRefreshClicked" disabled="@IsRefreshing" style="grid-column: 3;">
+            <button @onclick="HandleRefreshClick" disabled="@IsRefreshing" style="grid-column: 3;">
                 ↻
             </button>
         </header>
 
-        @if (!ViewOptions.Shrink && ViewOptions.Characters)
+        @if (!ViewOptions.Shrink && ViewOptions.Characters && (AccountData?.Characters?.Any() == true))
         {
             <div class="chars" style="--char-row-length: @_effectiveCharRowLength;">
-                @if (AccountData?.Characters?.Any() == true)
-                {
+                @{
                     IOrderedEnumerable<Character> orderedCharacters;
                     switch (ViewOptions.CharOrder)
                     {
@@ -65,10 +78,6 @@
                                        PCStatIdToNameMap="PCStatIdToNameMap"
                                        CharacterFameBonuses="CharacterFameBonuses" />
                     }
-                }
-                else
-                {
-                    <p>No characters to display.</p>
                 }
             </div>
         }
@@ -133,6 +142,7 @@
     private ElementReference _muleContainer;
     private int _effectiveCharRowLength;
     private DotNetObjectReference<AccountCard> _dotNetObjectReference;
+	private bool _showWarningMessage = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -147,6 +157,24 @@
         _effectiveCharRowLength = ViewOptions.CharRowLength;
         SettingsManager.OnChange += HandleSettingsChanged;
         MaxStatsPerClass = await AssetService.GetMaxStatsPerClass();
+    }
+
+    private string GetStarColor(int stars)
+    {
+        if (stars >= 90) return "#fff";      // White
+        if (stars >= 72) return "#ff0";      // Yellow
+        if (stars >= 54) return "#f6921d";    // Orange
+        if (stars >= 36) return "#c0262c";    // Red
+        if (stars >= 18) return "#304cda";    // Blue
+        return "#8997dd"; // Light Blue
+    }
+
+    private void DismissWarning() => _showWarningMessage = false;
+
+    private async Task HandleRefreshClick()
+    {
+        DismissWarning();
+        await OnRefreshClicked.InvokeAsync();
     }
 
     private async void HandleSettingsChanged()
@@ -167,6 +195,8 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        if (!string.IsNullOrEmpty(AccountData.LastErrorMessage)) _showWarningMessage = true;
+
         // This runs every time parameters are set. Ideal for parameter-dependent logic.
         if (AccountData?.Characters?.Any() == true)
         {

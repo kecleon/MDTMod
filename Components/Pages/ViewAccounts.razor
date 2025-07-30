@@ -69,9 +69,12 @@ else
 
         try
         {
-            var accountData = await RotmgApiSvc.GetAccountDataAsync(account);
+            // Get the existing data to pass to the service.
+            var existingData = accountDataMap.GetValueOrDefault(account.Id);
+            var accountData = await RotmgApiSvc.GetAccountDataAsync(account, existingData);
+            
             await AccountSvc.SaveAccountDataAsync(accountData);
-            accountDataMap[account.Id] = accountData; // Update the map with fresh data
+            accountDataMap[account.Id] = accountData; // Update the map with the result.
 
             if (accountData.PasswordError)
             {

@@ -7,6 +7,7 @@ namespace MDTadusMod.Data
     {
         public Guid AccountId { get; set; }
         public bool PasswordError { get; set; }
+        public string LastErrorMessage { get; set; }
 
         // Account-wide info
         public string Name { get; set; }

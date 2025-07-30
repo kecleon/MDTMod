@@ -62,7 +62,7 @@ header button {
 
 header .scont {
     background-color: #222;
-    border-radius: 6px;
+    border-radius: 5px;
     padding: 1px 4px 1px 4px;
     font-weight: normal;
     font-size: 14px;
@@ -104,3 +104,37 @@ p {
         flex-basis: 100%;
     }
 
+
+.guid {
+    color: #ccc;
+    background: #303030;
+    border: solid 1px #888;
+    padding: 2px;
+    font-family: monospace;
+    box-sizing: border-box;
+    width: 100%;
+}
+.warning {
+    background: #2d1212;
+    border-left: 4px solid #e74c3c;
+    display: flex;
+    font: 16px Arial,sans-serif;
+    height: 26px;
+}
+
+    .warning p {
+        margin: 4px 4px 4px 4px;
+        color: #FFF;
+        text-align: center;
+        flex-grow: 1;
+    }
+
+    .warning button {
+        background: #371616;
+        border: 0;
+        font-size: 16px;
+        text-align: center;
+        color: #f5b7b7;
+        cursor: pointer;
+        line-height: 1;
+    }

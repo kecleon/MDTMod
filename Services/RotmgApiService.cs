@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Web;
 using System.Linq;
+using System.Text;
 
 namespace MDTadusMod.Services
 {
@@ -14,28 +15,35 @@ namespace MDTadusMod.Services
         private readonly HttpClient _httpClient;
         private const string ClientToken = "0";
 
-        public RotmgApiService(HttpClient httpClient)
-        {
-            _httpClient = httpClient;
-        }
+        public RotmgApiService(HttpClient httpClient) => _httpClient = httpClient;
 
-        public async Task<AccountData> GetAccountDataAsync(Account account)
+        public async Task<AccountData> GetAccountDataAsync(Account account, AccountData existingAccountData = null)
         {
-            var accountData = new AccountData { AccountId = account.Id };
-            var accessToken = await VerifyAccountAndGetToken(account, accountData);
+            var sb = new StringBuilder();
+            sb.AppendLine($"Starting data fetch for {account.Email}...");
+            
+            // Create a temporary object to hold new data.
+            var newAccountData = new AccountData { AccountId = account.Id };
+            
+            var accessToken = await VerifyAccountAndGetToken(account, newAccountData);
 
-            if (accountData.PasswordError)
+            // If password is wrong, return the original, unmodified data.
+            if (newAccountData.PasswordError)
             {
-                // If there's a password error, we can't proceed.
-                // Return the data we have so the UI can be updated.
-                return accountData;
+                sb.AppendLine($"Token verification failed: {newAccountData.LastErrorMessage}");
+                Debug.WriteLine(sb.ToString());
+                // Return the old data if it exists, otherwise the new object with the error.
+                return existingAccountData ?? newAccountData;
             }
 
             if (string.IsNullOrEmpty(accessToken))
             {
-                // If there's no access token and no specific error, treat it as a general failure.
-                throw new Exception("Failed to get access token for an unknown reason.");
+                sb.AppendLine($"Token verification failed: {newAccountData.LastErrorMessage}");
+                Debug.WriteLine(sb.ToString());
+                return existingAccountData ?? newAccountData;
             }
+            sb.AppendLine("Successfully obtained access token.");
+
 
             var charListResponse = await _httpClient.PostAsync("https://www.realmofthemadgod.com/char/list", new FormUrlEncodedContent(new []
             {
@@ -45,15 +53,24 @@ namespace MDTadusMod.Services
 
             if (charListResponse.IsSuccessStatusCode)
             {
+                sb.AppendLine("Successfully fetched character list.");
                 var content = await charListResponse.Content.ReadAsStringAsync();
-                ParseCharListXml(content, accountData);
+                // Parse the new data into our temporary object.
+                ParseCharListXml(content, newAccountData);
             }
             else
             {
-                throw new Exception($"Failed to fetch character list: {charListResponse.ReasonPhrase}");
+                var errorMsg = $"Failed to fetch character list: {charListResponse.ReasonPhrase}";
+                sb.AppendLine(errorMsg);
+                newAccountData.LastErrorMessage = errorMsg;
+                // On failure, return the old data.
+                return existingAccountData ?? newAccountData;
             }
-    
-            return accountData;
+
+            sb.AppendLine("Data fetch process finished.");
+            Debug.WriteLine(sb.ToString());
+            // On success, return the newly fetched data.
+            return newAccountData;
         }
 
         private void ParseCharListXml(string xml, AccountData accountData)
@@ -74,6 +91,19 @@ namespace MDTadusMod.Services
                 {
                     accountData.GuildName = guildElement.Element("Name")?.Value;
                     accountData.GuildRank = (int?)guildElement.Element("Rank") ?? 0;
+                }
+
+                // --- Class Stats & Stars ---
+                var statsElement = accountElement.Element("Stats");
+                if (statsElement != null)
+                {
+                    int totalStars = 0;
+                    foreach (var classStats in statsElement.Elements("ClassStats"))
+                    {
+                        var bestFame = (int?)classStats.Element("BestBaseFame") ?? 0;
+                        totalStars += CalculateStars(bestFame);
+                    }
+                    accountData.Star = totalStars;
                 }
 
                 // Use the correct parser for account-level enchantments (which use the 'id' attribute)
@@ -220,7 +250,16 @@ namespace MDTadusMod.Services
             }
         }
 
-        // New parser for Account-level enchantments (keyed by instance ID)
+        private int CalculateStars(int fame)
+        {
+            if (fame >= 15000) return 5;
+            if (fame >= 5000) return 4;
+            if (fame >= 800) return 3;
+            if (fame >= 400) return 2;
+            if (fame >= 20) return 1;
+            return 0;
+        }
+
         private Dictionary<string, string> ParseAccountEnchantmentMap(XElement uniqueItemInfoElement)
         {
             if (uniqueItemInfoElement == null) return new Dictionary<string, string>();
@@ -233,7 +272,6 @@ namespace MDTadusMod.Services
                 );
         }
 
-        // Renamed original parser for Character-level enchantments (keyed by item type)
         private Dictionary<string, List<string>> ParseCharacterEnchantmentMap(XElement uniqueItemInfoElement)
         {
             var uniqueItemData = new Dictionary<string, List<string>>();
@@ -271,7 +309,7 @@ namespace MDTadusMod.Services
 
             HttpContent content;
 
-            if (account.Email.Contains(':') && !account.Email.Contains('@'))
+            if (account.Email.Contains(':') && !account.Email.Contains('@')) // steamworks
             {
                 content = new FormUrlEncodedContent(new[]
                 {
@@ -279,7 +317,7 @@ namespace MDTadusMod.Services
                     new KeyValuePair<string, string>("secret", account.Password)
                 });
             }
-            else
+            else // email
             {
                 content = new FormUrlEncodedContent(new[]
                 {
@@ -297,11 +335,19 @@ namespace MDTadusMod.Services
                 if (xml.Root?.Name == "Error" && xml.Root.Value == "WebChangePasswordDialog.passwordError")
                 {
                     accountData.PasswordError = true;
+                    accountData.LastErrorMessage = "Password error";
+
                     return null;
+                }
+                else if(xml.Root?.Name == "Error")
+                {
+                    accountData.LastErrorMessage = xml.Root.Value;
+
                 }
 
                 if (response.IsSuccessStatusCode)
                 {
+                    accountData.LastErrorMessage = "";
                     return xml.Root?.Element("AccessToken")?.Value;
                 }
             }
@@ -319,23 +365,5 @@ namespace MDTadusMod.Services
             return null; // Should not be reached, but covers all paths
         }
 
-        private async Task<string> FetchApiData(string url, string accessToken, bool useMuledump = false)
-        {
-            var parameters = new List<KeyValuePair<string, string>>
-            {
-                new KeyValuePair<string, string>("accessToken", accessToken)
-            };
-
-            if (useMuledump)
-            {
-                parameters.Add(new KeyValuePair<string, string>("muleDump", "true"));
-            }
-
-            var content = new FormUrlEncodedContent(parameters);
-
-            var response = await _httpClient.PostAsync(url, content);
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync();
-        }
     }
 }
