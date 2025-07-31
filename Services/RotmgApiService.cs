@@ -254,8 +254,8 @@ namespace MDTadusMod.Services
         {
             if (fame >= 15000) return 5;
             if (fame >= 5000) return 4;
-            if (fame >= 800) return 3;
-            if (fame >= 400) return 2;
+            if (fame >= 1500) return 3;
+            if (fame >= 500) return 2;
             if (fame >= 20) return 1;
             return 0;
         }
